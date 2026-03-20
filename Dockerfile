@@ -5,7 +5,7 @@ WORKDIR /var/www/html/
 
 # 2. Copia EXATAMENTE os arquivos que estão dentro da sua pasta para a raiz do servidor
 # Se o Dockerfile estiver na raiz do seu projeto, usamos este caminho:
-COPY src/faixaPreço/ /var/www/html/
+COPY src/FaixaPreço/ /var/www/html/
 
 # 3. Ajusta as permissões para o PHP conseguir receber e gravar o dados.json
 RUN chown -R www-data:www-data /var/www/html \
