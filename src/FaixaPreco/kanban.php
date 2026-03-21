@@ -83,13 +83,37 @@ require_once __DIR__ . '/../../db.php';
             background-color: var(--white); flex: 1; border: 2px solid var(--green-medium);
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
         }
-        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 15px; text-align: center; }
+        
+        /* CABEÇALHO DA COLUNA ATUALIZADO (Menor padding, título menor, Mix maior) */
+        .kanban-header { 
+            background-color: var(--green-medium); 
+            color: var(--white); 
+            padding: 8px; /* Reduzido de 15px para afinar o frame */
+            text-align: center; 
+        }
+        .kanban-header h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.1em; /* Título um pouco menor e mais discreto */
+        }
+        .range-info {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+        .mix-info {
+            display: block;
+            margin-top: 5px;
+            font-size: 1.1em; /* Aumentado para dar destaque à quantidade */
+            font-weight: bold;
+            color: #E8F5E9; /* Um verde bem clarinho para contrastar */
+        }
+        /* Fim da atualização do cabeçalho */
+
         .kanban-cards {
             padding: 15px; overflow-y: auto; flex-grow: 1; background-color: #fafafa;
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
         }
         
-        /* CARD ATUALIZADO (Com Design do B2C e Markup Maior) */
+        /* CARD ATUALIZADO */
         .card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
             padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
@@ -109,10 +133,7 @@ require_once __DIR__ . '/../../db.php';
             display: flex; justify-content: space-between; align-items: baseline; 
         }
         .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
-        
-        /* MARKUP MAIOR */
         .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
-        
         .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
         /* Modal */
@@ -160,24 +181,24 @@ require_once __DIR__ . '/../../db.php';
         <div class="kanban-column" id="col-entrada">
             <div class="kanban-header">
                 <h3>Entrada</h3>
-                <span class="range-info" id="info-range-entrada" style="display: none;">R$ 0 - R$ 99.99</span><br>
-                <small class="mix-info">Mix: <span id="mix-entrada">0</span></small>
+                <span class="range-info" id="info-range-entrada" style="display: none;">R$ 0 - R$ 99.99</span>
+                <span class="mix-info">Mix: <span id="mix-entrada">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-entrada"></div>
         </div>
         <div class="kanban-column" id="col-inter">
             <div class="kanban-header">
                 <h3>Intermediário</h3>
-                <span class="range-info" id="info-range-inter" style="display: none;">R$ 100 - R$ 299</span><br>
-                <small class="mix-info">Mix: <span id="mix-inter">0</span></small>
+                <span class="range-info" id="info-range-inter" style="display: none;">R$ 100 - R$ 299</span>
+                <span class="mix-info">Mix: <span id="mix-inter">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-inter"></div>
         </div>
         <div class="kanban-column" id="col-premium">
             <div class="kanban-header">
                 <h3>Premium</h3>
-                <span class="range-info" id="info-range-premium" style="display: none;">Acima de R$ 300</span><br>
-                <small class="mix-info">Mix: <span id="mix-premium">0</span></small>
+                <span class="range-info" id="info-range-premium" style="display: none;">Acima de R$ 300</span>
+                <span class="mix-info">Mix: <span id="mix-premium">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-premium"></div>
         </div>
