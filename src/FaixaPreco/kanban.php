@@ -8,8 +8,7 @@ if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
     exit;
 }
 // Chama o arquivo do banco para conectar e verificar se as tabelas existem
-require_once 'db.php';
-?>
+require_once __DIR__ . '/../../db.php';?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
