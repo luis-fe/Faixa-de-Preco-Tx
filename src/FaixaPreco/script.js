@@ -67,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
 
         const preencher = (container, data) => {
-            // Cria o HTML com o botão "Selecionar Tudo" no topo
             let html = `
                 <label style="border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 8px; color: var(--green-primary);">
                     <input type="checkbox" class="select-all" checked> <strong>Selecionar Tudo</strong>
@@ -82,13 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const chkAll = container.querySelector('.select-all');
             const chkItems = container.querySelectorAll('.item-checkbox');
 
-            // Evento: Clicar em "Selecionar Tudo"
             chkAll.addEventListener('change', (e) => {
                 chkItems.forEach(chk => chk.checked = e.target.checked);
                 atualizarKanban();
             });
 
-            // Evento: Clicar em itens individuais (atualiza o status do "Selecionar Tudo")
             chkItems.forEach(chk => {
                 chk.addEventListener('change', () => {
                     const todosMarcados = Array.from(chkItems).every(c => c.checked);
@@ -147,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. LÓGICA MESTRA DO KANBAN
     // ==========================================
     function atualizarKanban() {
-        // Pega apenas as checkboxes normais (ignora o "Selecionar Tudo")
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fColecoes = getChecked(listColecao);
         const fLinhasHeader = getChecked(listLinha);
@@ -198,14 +194,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-premium').innerText = cont.p;
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
         
-        // --- LÓGICA DE EXIBIÇÃO DAS FAIXAS NO CABEÇALHO DAS COLUNAS ---
         const infoEntrada = document.getElementById('info-range-entrada');
         const infoInter = document.getElementById('info-range-inter');
         const infoPremium = document.getElementById('info-range-premium');
 
-        // Se o usuário selecionou exatamente UMA Linha e UM Grupo (e existem produtos)
         if (fLinhasHeader.length === 1 && fGruposHeader.length === 1 && filtrados.length > 0) {
-            const amostra = filtrados[0]; // Pega as faixas do primeiro produto dessa combinação
+            const amostra = filtrados[0]; 
             infoEntrada.innerText = `Até R$ ${amostra.eMax.toFixed(2)}`;
             infoInter.innerText = `R$ ${(amostra.eMax + 0.01).toFixed(2)} - R$ ${amostra.iMax.toFixed(2)}`;
             infoPremium.innerText = `Acima de R$ ${amostra.iMax.toFixed(2)}`;
@@ -214,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
             infoInter.style.display = 'block';
             infoPremium.style.display = 'block';
         } else {
-            // Se tiver várias linhas/grupos ou nenhum selecionado, esconde as faixas
             infoEntrada.style.display = 'none';
             infoInter.style.display = 'none';
             infoPremium.style.display = 'none';
@@ -222,15 +215,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 5. CONTROLES DE INTERFACE (BOTÕES)
+    // 5. CONTROLES DE INTERFACE E SINCRONIA
     // ==========================================
     document.getElementById('btn-config').onclick = () => {
         const plano = selPlano.value;
         modalTitle.innerText = plano ? "Configurando: " + plano : "⚠️ Selecione o plano primeiro";
         modalTitle.style.color = plano ? "var(--green-primary)" : "red";
         
+        // Pega as linhas e grupos marcados no Kanban (ignora o "selecionar tudo")
+        const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
+        const fLinhasAtuais = getChecked(listLinha);
+        const fGruposAtuais = getChecked(listGrupo);
+
+        // Reseta o modal para o padrão "Selecione..."
         modalSelLinha.value = "";
         modalSelGrupo.value = "";
+
+        // A MÁGICA DA SINCRONIA: Se tiver só 1 selecionado, joga direto no modal!
+        if (fLinhasAtuais.length === 1) {
+            modalSelLinha.value = fLinhasAtuais[0];
+        }
+        if (fGruposAtuais.length === 1) {
+            modalSelGrupo.value = fGruposAtuais[0];
+        }
+
+        // Verifica se a tabela já pode aparecer preenchida
         verificarSelecaoModal();
 
         modal.style.display = 'block';
@@ -278,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("Erro do Banco de Dados: " + data.error);
             } else {
                 modal.style.display = 'none';
-                selPlano.dispatchEvent(new Event('change')); // Recarrega os dados recalculados!
+                selPlano.dispatchEvent(new Event('change')); 
             }
         })
         .catch(err => {
