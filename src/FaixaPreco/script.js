@@ -3,9 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Elementos da Tela Principal
     const selPlano = document.getElementById('filter-plano');
-    const containerColecao = document.getElementById('list-colecao');
-    const containerLinha = document.getElementById('list-linha');
-    const containerGrupo = document.getElementById('list-grupo');
+    const listColecao = document.getElementById('list-colecao');
+    const listLinha = document.getElementById('list-linha');
+    const listGrupo = document.getElementById('list-grupo');
 
     // Elementos do Modal
     const modal = document.getElementById('configModal');
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const interMaxInput = document.getElementById('inter-max');
     const premiumLabel = document.getElementById('premium-min-label');
 
-    // --- 1. BUSCAR DADOS QUANDO MUDAR O PLANO ---
+    // --- BUSCAR DADOS QUANDO MUDAR O PLANO ---
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
         if (!plano) {
@@ -26,26 +26,32 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
             .then(res => res.json())
             .then(data => {
+                console.log("Dados recebidos do banco:", data); // Para debug no F12
+                
                 produtosBase = data.map(p => ({
-                    ref: p.referencia,
-                    desc: p.descricao,
+                    ref: p.referencia || 'N/A',
+                    desc: p.descricao || '',
                     colecao: p.colecao || 'GERAL',
                     linha: p.linha || 'GERAL',
                     grupo: p.grupo || 'GERAL',
-                    preco: parseFloat(p.precoB2B) || 0
+                    // Garante que pega o preço, não importa se o Postgres enviou precoB2B ou precob2b
+                    preco: parseFloat(p.precoB2B || p.precob2b || p.preco) || 0 
                 }));
 
-                // AGORA SIM: Popula os filtros da tela e do modal
+                // O Segredo: Popula as checkboxes do cabeçalho e os selects do modal
                 gerarFiltrosCheckboxes();
                 popularSelectsModal();
                 
                 atualizarKanban();
                 document.getElementById('last-sync').innerText = new Date().toLocaleTimeString();
             })
-            .catch(err => console.error("Erro ao buscar dados:", err));
+            .catch(err => {
+                console.error("Erro Crítico ao buscar dados:", err);
+                alert("Erro ao conectar com o banco de dados. Veja o console (F12).");
+            });
     });
 
-    // --- 2. FUNÇÃO PARA CRIAR AS CHECKBOXES (A que estava faltando!) ---
+    // --- CRIAR AS CHECKBOXES (Menus Suspensos) ---
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
 
@@ -54,18 +60,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label><input type="checkbox" value="${val}" checked> ${val}</label>
             `).join('');
             
-            // Faz o Kanban atualizar sempre que marcar/desmarcar algo
+            // Faz o Kanban atualizar em tempo real ao clicar nas checkboxes
             container.querySelectorAll('input').forEach(chk => {
                 chk.addEventListener('change', atualizarKanban);
             });
         };
 
-        preencher(containerColecao, unique('colecao'));
-        preencher(containerLinha, unique('linha'));
-        preencher(containerGrupo, unique('grupo'));
+        preencher(listColecao, unique('colecao'));
+        preencher(listLinha, unique('linha'));
+        preencher(listGrupo, unique('grupo'));
     }
 
-    // Popula os selects únicos dentro do Modal
+    // --- POPULAR O MODAL (Selects únicos) ---
     function popularSelectsModal() {
         const uniqueLinhas = [...new Set(produtosBase.map(p => p.linha))].sort();
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
@@ -77,33 +83,34 @@ document.addEventListener('DOMContentLoaded', () => {
             uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
 
-    // --- 3. LÓGICA DE FILTRAGEM DO KANBAN ---
+    // --- LÓGICA MESTRA DO KANBAN ---
     function atualizarKanban() {
-        // Pega o que está marcado nos filtros do topo
+        // 1. Pega os valores marcados nos Checkboxes superiores
         const getChecked = (container) => Array.from(container.querySelectorAll('input:checked')).map(c => c.value);
-        
-        const fColecoes = getChecked(containerColecao);
-        const fLinhasHeader = getChecked(containerLinha);
-        const fGruposHeader = getChecked(containerGrupo);
+        const fColecoes = getChecked(listColecao);
+        const fLinhasHeader = getChecked(listLinha);
+        const fGruposHeader = getChecked(listGrupo);
 
-        // Pega o que está selecionado no Modal (Filtro Único)
+        // 2. Pega os valores selecionados no Modal
         const fLinhaModal = modalSelLinha.value;
         const fGrupoModal = modalSelGrupo.value;
 
-        // Faixas de Preço
+        // 3. Faixas de Preço
         const eMax = parseFloat(document.getElementById('entrada-max').value) || 0;
         const iMax = parseFloat(document.getElementById('inter-max').value) || 0;
 
-        // FILTRAGEM REAL
+        // 4. Filtragem Cruzada
         const filtrados = produtosBase.filter(p => {
             const matchColecao = fColecoes.includes(p.colecao);
-            const matchLinha = (!fLinhaModal) ? fLinhasHeader.includes(p.linha) : p.linha === fLinhaModal;
-            const matchGrupo = (!fGrupoModal) ? fGruposHeader.includes(p.grupo) : p.grupo === fGrupoModal;
+            
+            // Se o modal estiver em 'TODAS', respeita as checkboxes. Se não, força a linha do modal.
+            const matchLinha = (fLinhaModal === "") ? fLinhasHeader.includes(p.linha) : (p.linha === fLinhaModal);
+            const matchGrupo = (fGrupoModal === "") ? fGruposHeader.includes(p.grupo) : (p.grupo === fGrupoModal);
             
             return matchColecao && matchLinha && matchGrupo;
         });
 
-        // Renderização dos cards (Igual ao seu, mas com as classes corrigidas)
+        // 5. Limpa Colunas
         const cols = {
             entrada: document.getElementById('cards-entrada'),
             inter: document.getElementById('cards-inter'),
@@ -113,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let cont = { e: 0, i: 0, p: 0 };
 
+        // 6. Distribui Cards
         filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
@@ -133,26 +141,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // 7. Atualiza Painéis
         document.getElementById('mix-entrada').innerText = cont.e;
         document.getElementById('mix-inter').innerText = cont.i;
         document.getElementById('mix-premium').innerText = cont.p;
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
         
-        // Atualiza as labels de faixa
         document.getElementById('info-range-entrada').innerText = `Até R$ ${eMax.toFixed(2)}`;
         document.getElementById('info-range-inter').innerText = `Até R$ ${iMax.toFixed(2)}`;
         document.getElementById('info-range-premium').innerText = `Acima de R$ ${iMax.toFixed(2)}`;
     }
 
-    // --- 4. CONTROLE DO MODAL ---
+    // --- CONTROLES DA INTERFACE ---
     document.getElementById('btn-config').onclick = () => {
         const plano = selPlano.value;
-        modalTitle.innerText = plano ? "Plano: " + plano : "⚠️ Selecione um plano";
+        modalTitle.innerText = plano ? "Plano: " + plano : "⚠️ Selecione o plano primeiro";
+        modalTitle.style.color = plano ? "var(--green-primary)" : "red";
         modal.style.display = 'block';
     };
 
     document.getElementById('close-modal').onclick = () => modal.style.display = 'none';
-    
     window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
 
     interMaxInput.addEventListener('input', () => {
@@ -166,9 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function limparFiltros() {
         produtosBase = [];
-        containerColecao.innerHTML = '';
-        containerLinha.innerHTML = '';
-        containerGrupo.innerHTML = '';
+        listColecao.innerHTML = '';
+        listLinha.innerHTML = '';
+        listGrupo.innerHTML = '';
         atualizarKanban();
     }
 });
