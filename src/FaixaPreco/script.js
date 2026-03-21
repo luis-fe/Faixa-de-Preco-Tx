@@ -43,7 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     colecao: p.colecao || 'GERAL',
                     linha: p.linha || 'GERAL',
                     grupo: p.grupo || 'GERAL',
+                    // Conversão de valores financeiros limpando caracteres
                     preco: parseFloat((p.precoB2B || p.precob2b || p.preco || "0").replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0,
+                    precoB2C: parseFloat((p.precoB2C || p.precob2c || "0").replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0,
                     eMax: parseFloat(p.faixa_entrada_max) || 0, 
                     iMax: parseFloat(p.faixa_inter_max) || 0
                 }));
@@ -127,6 +129,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (amostra) {
                     document.getElementById('entrada-max').value = amostra.eMax.toFixed(2);
+                    // O mínimo do inter é sempre o max da entrada
+                    document.getElementById('inter-min').value = (amostra.eMax + 0.01).toFixed(2);
+                    
                     document.getElementById('inter-max').value = amostra.iMax.toFixed(2);
                     premiumLabel.innerText = amostra.iMax.toFixed(2);
                 }
@@ -141,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSelGrupo.addEventListener('change', verificarSelecaoModal);
 
     // ==========================================
-    // 4. LÓGICA MESTRA DO KANBAN
+    // 4. LÓGICA MESTRA DO KANBAN E CARDS
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -172,12 +177,22 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
+            
+            // Lógica do Preço B2C: Só aparece se for maior que zero
+            let textoB2C = '';
+            if (p.precoB2C > 0) {
+                textoB2C = `<span class="price-b2c">(B2C - ${p.precoB2C.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})})</span>`;
+            }
+
             card.innerHTML = `
                 <div class="info-container">
                     <span class="ref-code">${p.ref}</span>
                     <span class="description">${p.desc}</span>
                 </div>
-                <span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                <div class="price-container">
+                    <span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                    ${textoB2C}
+                </div>
             `;
 
             if (p.preco <= p.eMax) {
@@ -194,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-premium').innerText = cont.p;
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
         
+        // Regra para exibir ou ocultar as legendas de faixas nas colunas
         const infoEntrada = document.getElementById('info-range-entrada');
         const infoInter = document.getElementById('info-range-inter');
         const infoPremium = document.getElementById('info-range-premium');
@@ -222,38 +238,36 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTitle.innerText = plano ? "Configurando: " + plano : "⚠️ Selecione o plano primeiro";
         modalTitle.style.color = plano ? "var(--green-primary)" : "red";
         
-        // Pega as linhas e grupos marcados no Kanban (ignora o "selecionar tudo")
+        // Pega as linhas e grupos marcados no Kanban
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fLinhasAtuais = getChecked(listLinha);
         const fGruposAtuais = getChecked(listGrupo);
 
-        // Reseta o modal para o padrão "Selecione..."
         modalSelLinha.value = "";
         modalSelGrupo.value = "";
 
-        // A MÁGICA DA SINCRONIA: Se tiver só 1 selecionado, joga direto no modal!
-        if (fLinhasAtuais.length === 1) {
-            modalSelLinha.value = fLinhasAtuais[0];
-        }
-        if (fGruposAtuais.length === 1) {
-            modalSelGrupo.value = fGruposAtuais[0];
-        }
+        // Sincroniza se tiver apenas um marcado
+        if (fLinhasAtuais.length === 1) modalSelLinha.value = fLinhasAtuais[0];
+        if (fGruposAtuais.length === 1) modalSelGrupo.value = fGruposAtuais[0];
 
-        // Verifica se a tabela já pode aparecer preenchida
         verificarSelecaoModal();
-
         modal.style.display = 'block';
     };
 
     document.getElementById('close-modal').onclick = () => modal.style.display = 'none';
     window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
 
+    // Atualiza campo "Acima de" e os limites de forma encadeada no modal
+    document.getElementById('entrada-max').addEventListener('input', (e) => {
+        document.getElementById('inter-min').value = (parseFloat(e.target.value) + 0.01).toFixed(2) || "0.00";
+    });
+
     interMaxInput.addEventListener('input', () => {
         premiumLabel.innerText = interMaxInput.value;
     });
 
     // ==========================================
-    // 6. SALVAR FAIXAS NO BANCO DE DADOS E RECARREGAR
+    // 6. SALVAR FAIXAS NO BANCO DE DADOS
     // ==========================================
     btnSave.onclick = () => {
         const planoAtual = selPlano.value;

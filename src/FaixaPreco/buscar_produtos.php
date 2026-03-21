@@ -13,13 +13,11 @@ if (empty($plano)) {
 }
 
 try {
-    // A MÁGICA DOS TERCEIS (Tratando Vírgula e Texto para Número)
     $sql = '
     WITH stats AS (
         SELECT 
             p.linha, 
             p.grupo,
-            -- Limpa R$ e troca vírgula por ponto antes de converter para matemática
             MIN(CAST(REPLACE(REPLACE(NULLIF(pp."precoB2B", \'\'), \'R$\', \'\'), \',\', \'.\') AS NUMERIC)) AS min_preco,
             MAX(CAST(REPLACE(REPLACE(NULLIF(pp."precoB2B", \'\'), \'R$\', \'\'), \',\', \'.\') AS NUMERIC)) AS max_preco
         FROM "produto_plano" pp
@@ -30,14 +28,14 @@ try {
     SELECT 
         p.*, 
         pp."precoB2B",
+        pp."precoB2C",
+        pp."MkpB2B",
         
-        -- Calcula o 1/3 e tenta usar o salvo se existir
         COALESCE(
             CAST(REPLACE(NULLIF(fx."valorEntradaB2B", \'\'), \',\', \'.\') AS NUMERIC), 
             s.min_preco + ((s.max_preco - s.min_preco) / 3.0)
         ) AS faixa_entrada_max,
         
-        -- Calcula o 2/3 e tenta usar o salvo se existir
         COALESCE(
             CAST(REPLACE(NULLIF(fx."valorintermediarioB2B", \'\'), \',\', \'.\') AS NUMERIC), 
             s.min_preco + (((s.max_preco - s.min_preco) / 3.0) * 2.0)

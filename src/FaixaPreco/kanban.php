@@ -89,7 +89,7 @@ require_once __DIR__ . '/../../db.php';
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
         }
         
-        /* CARD */
+        /* CARD ATUALIZADO (Com Design do B2C) */
         .card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
             padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
@@ -99,7 +99,11 @@ require_once __DIR__ . '/../../db.php';
         .card .info-container { display: flex; flex-direction: column; gap: 2px; }
         .card .ref-code { font-size: 0.9em; color: #222; font-weight: bold; display: block; }
         .card .description { font-size: 0.78em; color: #757575; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; border-top: 1px solid #f0f0f0; padding-top: 6px; margin-top: 4px; white-space: nowrap; }
+        
+        /* Área de Preços */
+        .card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 6px; margin-top: 4px; }
+        .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
+        .card .price-b2c { color: #673AB7; font-size: 0.70em; font-weight: bold; display: block; margin-top: -2px; }
 
         /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
@@ -146,7 +150,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="kanban-column" id="col-entrada">
             <div class="kanban-header">
                 <h3>Entrada</h3>
-                <span class="range-info" id="info-range-entrada">R$ 0 - R$ 99.99</span><br>
+                <span class="range-info" id="info-range-entrada" style="display: none;">R$ 0 - R$ 99.99</span><br>
                 <small class="mix-info">Mix: <span id="mix-entrada">0</span></small>
             </div>
             <div class="kanban-cards" id="cards-entrada"></div>
@@ -154,7 +158,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="kanban-column" id="col-inter">
             <div class="kanban-header">
                 <h3>Intermediário</h3>
-                <span class="range-info" id="info-range-inter">R$ 100 - R$ 299</span><br>
+                <span class="range-info" id="info-range-inter" style="display: none;">R$ 100 - R$ 299</span><br>
                 <small class="mix-info">Mix: <span id="mix-inter">0</span></small>
             </div>
             <div class="kanban-cards" id="cards-inter"></div>
@@ -162,7 +166,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="kanban-column" id="col-premium">
             <div class="kanban-header">
                 <h3>Premium</h3>
-                <span class="range-info" id="info-range-premium">Acima de R$ 300</span><br>
+                <span class="range-info" id="info-range-premium" style="display: none;">Acima de R$ 300</span><br>
                 <small class="mix-info">Mix: <span id="mix-premium">0</span></small>
             </div>
             <div class="kanban-cards" id="cards-premium"></div>
@@ -197,12 +201,12 @@ require_once __DIR__ . '/../../db.php';
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                     <tr style="height: 40px;">
                         <td><strong>Entrada</strong></td>
-                        <td style="text-align: right;">R$ <input type="number" id="entrada-min" value="0" style="width: 65px; padding: 4px;"> à</td>
+                        <td style="text-align: right;">R$ <input type="number" id="entrada-min" value="0" style="width: 65px; padding: 4px;" disabled> à</td>
                         <td>R$ <input type="number" id="entrada-max" value="99.99" style="width: 65px; padding: 4px;"></td>
                     </tr>
                     <tr style="height: 40px;">
                         <td><strong>Intermediário</strong></td>
-                        <td style="text-align: right;">R$ <input type="number" id="inter-min" value="100.00" style="width: 65px; padding: 4px;"> à</td>
+                        <td style="text-align: right;">R$ <input type="number" id="inter-min" value="100.00" style="width: 65px; padding: 4px;" disabled> à</td>
                         <td>R$ <input type="number" id="inter-max" value="299.99" style="width: 65px; padding: 4px;"></td>
                     </tr>
                     <tr style="height: 40px;">

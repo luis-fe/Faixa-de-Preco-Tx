@@ -1,45 +1,53 @@
 <?php
-// Tenta buscar de todas as formas possíveis (getenv, $_ENV e $_SERVER)
 $host = getenv('PGHOST') ?: ($_ENV['PGHOST'] ?? ($_SERVER['PGHOST'] ?? null));
 $port = getenv('PGPORT') ?: ($_ENV['PGPORT'] ?? ($_SERVER['PGPORT'] ?? '5432'));
 $dbname = getenv('PGDATABASE') ?: ($_ENV['PGDATABASE'] ?? ($_SERVER['PGDATABASE'] ?? null));
 $user = getenv('PGUSER') ?: ($_ENV['PGUSER'] ?? ($_SERVER['PGUSER'] ?? null));
 $pass = getenv('PGPASSWORD') ?: ($_ENV['PGPASSWORD'] ?? ($_SERVER['PGPASSWORD'] ?? null));
 
-// REMOVA espaços ou aspas que o Railway possa ter colocado por erro
 $host = trim($host, " '\"");
 $dbname = trim($dbname, " '\"");
 $user = trim($user, " '\"");
 $pass = trim($pass, " '\"");
 
 if (!$host || !$dbname) {
-    // Vamos exibir o que o PHP ESTÁ vendo para podermos debugar
-    die("Erro: Variáveis não encontradas. Verificamos PGHOST e PGDATABASE. Verifique se o serviço do Banco está 'Linkado' ao serviço do PHP no Railway.");
+    die("Erro: Variáveis não encontradas. Verificamos PGHOST e PGDATABASE.");
 }
 
 try {
-    // Montagem limpa
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
     $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-
-    // SQL de criação 
     $sql = '
+        /* TABELA PRODUTO */
         CREATE TABLE IF NOT EXISTS "produto" (
             referencia VARCHAR PRIMARY KEY,
             descricao VARCHAR,
             colecao VARCHAR,
             linha VARCHAR,
-            grupo VARCHAR
+            grupo VARCHAR,
+            "classificacao" VARCHAR
         );
+        ALTER TABLE "produto" ADD COLUMN IF NOT EXISTS "classificacao" VARCHAR;
+
+        /* TABELA PLANO */
         CREATE TABLE IF NOT EXISTS "Plano" (
             plano VARCHAR PRIMARY KEY
         );
+
+        /* TABELA PRODUTO_PLANO (Preços e Markups) */
         CREATE TABLE IF NOT EXISTS "produto_plano" (
             referencia VARCHAR,
             plano VARCHAR,
-            "precoB2B" VARCHAR
+            "precoB2B" VARCHAR,
+            "precoB2C" VARCHAR,
+            "MkpB2B" VARCHAR,
+            UNIQUE(referencia, plano)
         );
+        ALTER TABLE "produto_plano" ADD COLUMN IF NOT EXISTS "precoB2C" VARCHAR;
+        ALTER TABLE "produto_plano" ADD COLUMN IF NOT EXISTS "MkpB2B" VARCHAR;
+
+        /* TABELA DE FAIXAS SALVAS */
         CREATE TABLE IF NOT EXISTS "planoFaixaPrecoLinhaGrupo"(
             plano varchar,
             linha varchar,
@@ -55,3 +63,4 @@ try {
 } catch (PDOException $e) {
     die("Erro de Conexão: " . $e->getMessage());
 }
+?>
