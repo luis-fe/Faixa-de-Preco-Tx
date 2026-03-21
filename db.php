@@ -22,8 +22,6 @@ try {
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
     $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-    // 👇 ADICIONE ESTA LINHA AQUI (A "Opção Nuclear") 👇
-    $pdo->exec('DROP TABLE IF EXISTS "planoFaixaPrecoLinhaGrupo";');
 
     // SQL de criação 
     $sql = '
