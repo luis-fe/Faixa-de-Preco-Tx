@@ -55,7 +55,6 @@ require_once __DIR__ . '/../../db.php';
             display: flex; justify-content: space-between; align-items: center;
         }
         
-        /* NOVA CLASSE DA LEGENDA DO FILTRO (Cinza e Menor) */
         .filter-subtitle {
             color: #888;
             font-size: 0.85em;
@@ -117,11 +116,22 @@ require_once __DIR__ . '/../../db.php';
         .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
         .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
-        /* Modal */
+        /* Estilos de Modais */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
-        .modal-content { background: #fff; width: 450px; margin: 5% auto; padding: 25px; border-radius: 8px; border: 3px solid var(--green-primary); position: relative;}
+        .modal-content { background: #fff; margin: 5% auto; padding: 25px; border-radius: 8px; border: 3px solid var(--green-primary); position: relative;}
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: var(--green-primary); font-weight: bold; }
         .footer { text-align: center; font-size: 0.8em; color: #666; padding: 10px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ccc;}
+
+        /* Estilo específico para Tabela de Resumo */
+        #table-resumo { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        #table-resumo thead th { 
+            background: var(--green-primary); color: white; padding: 12px; 
+            text-align: left; position: sticky; top: 0; cursor: pointer; font-size: 0.85em;
+        }
+        #table-resumo thead th:hover { background: var(--green-medium); }
+        #table-resumo tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        #table-resumo tbody tr:hover { background-color: #f1f8e9; }
+        #table-resumo td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -160,6 +170,7 @@ require_once __DIR__ . '/../../db.php';
             </div>
 
             <button class="btn" id="btn-config">Configurar Faixas</button>
+            <button class="btn" id="btn-resumo" style="background-color: #1976D2; border-color: #white;">Resumo do Mix</button>
         </div>
         <div class="global-indicator">Mix Total: <span id="total-mix">0</span></div>
     </div>
@@ -191,22 +202,18 @@ require_once __DIR__ . '/../../db.php';
         </div>
     </div>
 
-<div id="configModal" class="modal">
-        <div class="modal-content" style="width: 600px;"> <span class="close-modal" id="close-modal">&times;</span>
-            
-            <h2 id="modal-plano-title" style="margin: 0 0 5px 0; font-size: 1.4em;">Configurar Faixas</h2>
+    <div id="configModal" class="modal">
+        <div class="modal-content" style="width: 600px;"> 
+            <span class="close-modal" id="close-modal">&times;</span>
+            <h2 style="margin: 0 0 5px 0; font-size: 1.4em;">Configurar Faixas</h2>
             <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
-
             <div style="margin-bottom: 20px;">
                 <label style="font-size: 0.75em; font-weight: bold; display: block; margin-bottom: 5px;">1. SELECIONE O GRUPO</label>
-                <select id="modal-filter-grupo" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--green-primary); font-weight: bold;">
-                    </select>
+                <select id="modal-filter-grupo" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--green-primary); font-weight: bold;"></select>
             </div>
-
             <div id="msg-selecione-filtros" style="text-align: center; color: #757575; padding: 20px 0; font-style: italic;">
                 ⚠️ Selecione um Grupo para carregar as Linhas vinculadas.
             </div>
-
             <div id="config-faixas-area" style="display: none;">
                 <div style="display: flex; font-size: 0.7em; font-weight: bold; color: #666; margin-bottom: 10px; padding: 0 10px;">
                     <div style="flex: 2;">LINHA</div>
@@ -214,13 +221,32 @@ require_once __DIR__ . '/../../db.php';
                     <div style="flex: 1.5; text-align: center;">INTERMED. (ATÉ)</div>
                     <div style="flex: 1; text-align: center;">PREMIUM</div>
                 </div>
-                
-                <div id="linhas-dinamicas-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #eee; padding: 10px; border-radius: 4px;">
-                    </div>
-
+                <div id="linhas-dinamicas-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #eee; padding: 10px; border-radius: 4px;"></div>
                 <div class="modal-footer" style="text-align: right;">
                     <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%; border: none; padding: 15px; font-size: 1em;">Salvar Todas as Faixas do Grupo</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summaryModal" class="modal">
+        <div class="modal-content" style="width: 700px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+            <span class="close-modal" id="close-summary">&times;</span>
+            <h2 style="margin: 0;">Resumo do Mix por Grupo/Linha</h2>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+            
+            <div style="overflow-y: auto; flex-grow: 1;">
+                <table id="table-resumo">
+                    <thead>
+                        <tr>
+                            <th onclick="ordenarResumo('grupo')">GRUPO ↕️</th>
+                            <th onclick="ordenarResumo('linha')">LINHA ↕️</th>
+                            <th onclick="ordenarResumo('total')" style="text-align: center;">TOTAL PRODUTOS ↕️</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body-resumo">
+                        </tbody>
+                </table>
             </div>
         </div>
     </div>
