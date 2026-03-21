@@ -1,6 +1,7 @@
 <?php
-session_save_path(__DIR__); // Obriga o Docker a salvar a sessão aqui
+session_save_path(__DIR__); // Tem que ter a mesma linha mágica aqui também
 session_start();
+
 // Se o usuário não estiver logado, redireciona para a tela de login (index.php)
 if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
     header("Location: index.php");
@@ -94,7 +95,6 @@ if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
             display: flex;
             gap: 20px; 
             padding: 20px; 
-            /* Ajustado levemente para dar espaço ao rodapé */
             height: calc(100vh - 140px);
         }
 
@@ -120,7 +120,7 @@ if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
         .kanban-header .range-info { font-size: 0.9em; opacity: 0.9; } 
         .kanban-header .mix-info { font-weight: bold; margin-top: 5px; display: block; font-size: 1.05em;} 
 
-        /* GRID PARA CARDS (3 colunas) */
+        /* GRID PARA CARDS */
         .kanban-cards {
             padding: 15px; 
             overflow-y: auto;

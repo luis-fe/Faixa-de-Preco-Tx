@@ -1,5 +1,5 @@
 <?php
-session_save_path(__DIR__); // Obriga o Docker a salvar a sessão aqui
+session_save_path(__DIR__); // Essa é a linha mágica que cura a amnésia do servidor
 session_start();
 
 // Se já estiver logado, manda direto pro Kanban
