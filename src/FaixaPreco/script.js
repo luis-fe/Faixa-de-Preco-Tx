@@ -37,22 +37,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 return res.json();
             })
             .then(data => {
-                produtosBase = data.map(p => ({
-                    ref: p.referencia || 'N/A',
-                    desc: p.descricao || '',
-                    colecao: p.colecao || 'GERAL',
-                    linha: p.linha || 'GERAL',
-                    grupo: p.grupo || 'GERAL',
-                    // Conversão de valores financeiros limpando caracteres
-                    preco: parseFloat((p.precoB2B || p.precob2b || p.preco || "0").replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0,
-                    precoB2C: parseFloat((p.precoB2C || p.precob2c || "0").replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0,
-                    eMax: parseFloat(p.faixa_entrada_max) || 0, 
-                    iMax: parseFloat(p.faixa_inter_max) || 0
-                }));
+                console.log("Teste de Carga B2C/Markup. Primeiro item do banco:", data[0]);
+
+                produtosBase = data.map(p => {
+                    const limpaMoeda = (val) => {
+                        if (!val || String(val).trim() === '') return 0;
+                        let limpo = String(val).replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+                        return parseFloat(limpo) || 0;
+                    };
+
+                    return {
+                        ref: p.referencia || 'N/A',
+                        desc: p.descricao || '',
+                        colecao: p.colecao || 'GERAL',
+                        linha: p.linha || 'GERAL',
+                        grupo: p.grupo || 'GERAL',
+                        
+                        preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco),
+                        precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
+                        // O Markup chega como texto e tratamos para float para usar o toLocaleString
+                        mkp: limpaMoeda(p.MkpB2B || p.mkpb2b), 
+
+                        eMax: parseFloat(p.faixa_entrada_max) || 0, 
+                        iMax: parseFloat(p.faixa_inter_max) || 0
+                    };
+                });
 
                 gerarFiltrosCheckboxes();
                 popularSelectsModal();
-                
                 atualizarKanban();
                 document.getElementById('last-sync').innerText = new Date().toLocaleTimeString('pt-BR');
             })
@@ -63,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 2. CRIAR AS CHECKBOXES (COM "SELECIONAR TUDO")
+    // 2. CRIAR AS CHECKBOXES
     // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
@@ -103,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. LÓGICA DO MODAL (POPULAR E ESCONDER)
+    // 3. LÓGICA DO MODAL
     // ==========================================
     function popularSelectsModal() {
         const uniqueLinhas = [...new Set(produtosBase.map(p => p.linha))].sort();
@@ -129,9 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (amostra) {
                     document.getElementById('entrada-max').value = amostra.eMax.toFixed(2);
-                    // O mínimo do inter é sempre o max da entrada
                     document.getElementById('inter-min').value = (amostra.eMax + 0.01).toFixed(2);
-                    
                     document.getElementById('inter-max').value = amostra.iMax.toFixed(2);
                     premiumLabel.innerText = amostra.iMax.toFixed(2);
                 }
@@ -178,10 +188,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'card';
             
-            // Lógica do Preço B2C: Só aparece se for maior que zero
+            // Só exibe B2C e Markup se os valores forem maiores que zero
             let textoB2C = '';
             if (p.precoB2C > 0) {
                 textoB2C = `<span class="price-b2c">(B2C - ${p.precoB2C.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})})</span>`;
+            }
+
+            let textoMkp = '';
+            if (p.mkp > 0) {
+                textoMkp = `<span class="markup">Mkp: ${p.mkp.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
             }
 
             card.innerHTML = `
@@ -190,7 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="description">${p.desc}</span>
                 </div>
                 <div class="price-container">
-                    <span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                    <div class="b2b-row">
+                        <span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                        ${textoMkp}
+                    </div>
                     ${textoB2C}
                 </div>
             `;
@@ -209,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-premium').innerText = cont.p;
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
         
-        // Regra para exibir ou ocultar as legendas de faixas nas colunas
         const infoEntrada = document.getElementById('info-range-entrada');
         const infoInter = document.getElementById('info-range-inter');
         const infoPremium = document.getElementById('info-range-premium');
@@ -238,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTitle.innerText = plano ? "Configurando: " + plano : "⚠️ Selecione o plano primeiro";
         modalTitle.style.color = plano ? "var(--green-primary)" : "red";
         
-        // Pega as linhas e grupos marcados no Kanban
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fLinhasAtuais = getChecked(listLinha);
         const fGruposAtuais = getChecked(listGrupo);
@@ -246,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalSelLinha.value = "";
         modalSelGrupo.value = "";
 
-        // Sincroniza se tiver apenas um marcado
         if (fLinhasAtuais.length === 1) modalSelLinha.value = fLinhasAtuais[0];
         if (fGruposAtuais.length === 1) modalSelGrupo.value = fGruposAtuais[0];
 
@@ -257,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('close-modal').onclick = () => modal.style.display = 'none';
     window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
 
-    // Atualiza campo "Acima de" e os limites de forma encadeada no modal
     document.getElementById('entrada-max').addEventListener('input', (e) => {
         document.getElementById('inter-min').value = (parseFloat(e.target.value) + 0.01).toFixed(2) || "0.00";
     });

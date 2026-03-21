@@ -89,7 +89,7 @@ require_once __DIR__ . '/../../db.php';
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
         }
         
-        /* CARD ATUALIZADO (Com Design do B2C) */
+        /* CARD ATUALIZADO (Com Design do B2C e Markup) */
         .card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
             padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
@@ -100,10 +100,17 @@ require_once __DIR__ . '/../../db.php';
         .card .ref-code { font-size: 0.9em; color: #222; font-weight: bold; display: block; }
         .card .description { font-size: 0.78em; color: #757575; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         
-        /* Área de Preços */
-        .card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 6px; margin-top: 4px; }
+        /* Área de Preços e Markup */
+        .card .price-container { 
+            display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; 
+            padding-top: 6px; margin-top: 4px; 
+        }
+        .card .b2b-row { 
+            display: flex; justify-content: space-between; align-items: baseline; 
+        }
         .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
-        .card .price-b2c { color: #673AB7; font-size: 0.70em; font-weight: bold; display: block; margin-top: -2px; }
+        .card .markup { color: #888; font-size: 0.70em; font-weight: bold; }
+        .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
         /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
