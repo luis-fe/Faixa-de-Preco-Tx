@@ -1,22 +1,22 @@
 <?php
-// Tenta pegar as credenciais do Railway (ou usa valores padrão para teste local)
-$host = $_ENV['PGHOST'] ?? getenv('PGHOST');
-$port = $_ENV['PGPORT'] ?? getenv('PGPORT');
-$dbname = $_ENV['PGDATABASE'] ?? getenv('PGDATABASE');
-$user = $_ENV['PGUSER'] ?? getenv('PGUSER');
-$pass = $_ENV['PGPASSWORD'] ?? getenv('PGPASSWORD');
-
-$dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
-$pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+// Pega as variáveis do Railway (usa os nomes padrões da plataforma)
+$host = getenv('PGHOST');
+$port = getenv('PGPORT') ?: '5432';
+$dbname = getenv('PGDATABASE');
+$user = getenv('PGUSER');
+$pass = getenv('PGPASSWORD');
 
 try {
-    // Cria a conexão com o PostgreSQL usando PDO
-    $pdo = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password);
+    // A STRING DE CONEXÃO (DSN) - Corrigida para evitar o erro da imagem
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
     
-    // Configura o PDO para jogar erros na tela caso algo dê errado (ajuda muito a debugar)
+    // Cria a conexão
+    $pdo = new PDO($dsn, $user, $pass);
+    
+    // Configura o erro para exceção
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // O comando SQL que cria as tabelas APENAS se elas não existirem
+    // Criação das tabelas (IF NOT EXISTS)
     $sql = '
         CREATE TABLE IF NOT EXISTS "produto" (
             referencia VARCHAR PRIMARY KEY,
@@ -37,11 +37,9 @@ try {
         );
     ';
 
-    // Executa a query de criação
     $pdo->exec($sql);
 
 } catch (PDOException $e) {
-    // Se der erro de senha, banco inexistente, etc., ele para tudo e avisa
-    die("Erro crítico - Falha ao conectar no banco de dados: " . $e->getMessage());
+    // Se der erro, ele vai mostrar de forma clara agora
+    die("Erro de Conexão: " . $e->getMessage());
 }
-?>
