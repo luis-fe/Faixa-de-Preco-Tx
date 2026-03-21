@@ -1,10 +1,10 @@
 <?php
-session_save_path(__DIR__); // Tem que ter a mesma linha mágica aqui também
+session_save_path(sys_get_temp_dir()); 
 session_start();
 
-// Se o usuário não estiver logado, redireciona para a tela de login (index.php)
+// Volta duas pastas (FaixaPreco -> src -> raiz) para achar o index.php
 if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
-    header("Location: index.php");
+    header("Location: ../../index.php");
     exit;
 }
 ?>

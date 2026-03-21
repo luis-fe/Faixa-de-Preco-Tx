@@ -1,24 +1,22 @@
 <?php
-session_save_path(__DIR__); // Essa é a linha mágica que cura a amnésia do servidor
+session_save_path(sys_get_temp_dir()); // Centraliza a sessão para as duas pastas se acharem
 session_start();
 
 // Se já estiver logado, manda direto pro Kanban
 if (isset($_SESSION['logado']) && $_SESSION['logado'] === true) {
-    header("Location: kanban.php");
+    header("Location: src/FaixaPreco/kanban.php");
     exit;
 }
 
 $erro = "";
 
-// Lógica que processa o formulário quando o botão é clicado
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario = $_POST['usuario'] ?? '';
     $senha = $_POST['senha'] ?? '';
 
-    // Verifica as credenciais
     if ($usuario === 'teste.teste' && $senha === '123') {
         $_SESSION['logado'] = true;
-        header("Location: kanban.php");
+        header("Location: src/FaixaPreco/kanban.php");
         exit;
     } else {
         $erro = "Usuário ou senha incorretos!";
