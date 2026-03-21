@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Função global chamada pelos links da tabela
     window.aplicarFiltroResumo = (grupo, linha, colecao) => {
-        const filtroGrupoResumo = resumoFilterGrupo.value; // Considera se o modal já estava filtrado
+        const filtroGrupoResumo = resumoFilterGrupo.value; 
 
         const setChecks = (containerId, valorAlvo) => {
             const container = document.getElementById(containerId);

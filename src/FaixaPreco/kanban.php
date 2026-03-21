@@ -123,10 +123,10 @@ require_once __DIR__ . '/../../db.php';
         .footer { text-align: center; font-size: 0.8em; color: #666; padding: 10px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ccc;}
 
         /* ESTILO DA MATRIZ DE RESUMO */
-        #table-resumo { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        #table-resumo { width: 100%; border-collapse: collapse; margin-top: 5px; }
         #table-resumo th, #table-resumo td { border: 1px solid #dcdcdc; padding: 10px; font-size: 0.9em; }
         #table-resumo thead th { 
-            background: #757575; /* Cinza Elegante */
+            background: #757575;
             color: white; padding: 12px; 
             position: sticky; top: 0; cursor: pointer; font-size: 0.85em; text-align: left;
             border: 1px solid #616161;
@@ -178,7 +178,7 @@ require_once __DIR__ . '/../../db.php';
             </div>
 
             <button class="btn" id="btn-config">Configurar Faixas</button>
-            <button class="btn" id="btn-resumo">Matriz de Mix</button> 
+            <button class="btn" id="btn-resumo">Resumo do Mix</button> 
         </div>
         <div class="global-indicator">Mix Total: <span id="total-mix">0</span></div>
     </div>
@@ -241,13 +241,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="modal-content" style="width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
             <span class="close-modal" id="close-summary">&times;</span>
             
-            <h2 style="margin: 0; display: flex; justify-content: space-between; align-items: center;">
-                Matriz do Mix (Linhas x Coleções)
-                <button id="btn-toggle-colecao" class="btn" style="font-size: 0.7em; padding: 8px 15px; background-color: #757575; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    ➕ Expandir Coleções
-                </button>
-            </h2>
-
+            <h2 style="margin: 0;">Resumo do Mix</h2>
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
             
             <div style="background: #f1f8e9; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
@@ -255,6 +249,12 @@ require_once __DIR__ . '/../../db.php';
                 <select id="resumo-filter-grupo" style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
                     <option value="TODOS">TODOS OS GRUPOS</option>
                 </select>
+            </div>
+
+            <div style="text-align: right; margin-bottom: 5px;">
+                <button id="btn-toggle-colecao" style="font-size: 0.7em; padding: 6px 12px; background-color: #757575; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    ➕ Expandir Coleções
+                </button>
             </div>
             
             <div style="overflow-y: auto; overflow-x: auto; flex-grow: 1;">
