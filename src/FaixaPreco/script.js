@@ -224,8 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-entrada').innerText = cont.e;
         document.getElementById('mix-inter').innerText = cont.i;
         document.getElementById('mix-premium').innerText = cont.p;
-        document.getElementById('total-mix').innerText = cont.e + cont.i + p;
-        
+        document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;        
         const infoEntrada = document.getElementById('info-range-entrada');
         const infoInter = document.getElementById('info-range-inter');
         const infoPremium = document.getElementById('info-range-premium');
