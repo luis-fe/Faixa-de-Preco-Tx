@@ -127,36 +127,54 @@ require_once __DIR__ . '/../../db.php';
             background-color: var(--white);
             border: 1px solid var(--green-medium);
             border-top: 4px solid var(--green-primary);
-            padding: 12px;
+            padding: 10px;
             border-radius: 6px;
             display: flex;
-            flex-direction: column; /* Garante que os itens fiquem um abaixo do outro */
-            gap: 8px; /* Espaço entre a descrição e o preço */
+            flex-direction: column;
+            gap: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-height: 80px;
+            min-height: 90px;
             justify-content: space-between;
+            overflow: hidden; /* Impede que qualquer conteúdo escape do card */
+            word-wrap: break-word; /* Força a quebra de palavras longas se necessário */
         }
 
-        .card .ref-desc {
-            font-size: 0.85em;
-            color: #333;
-            font-weight: 500;
+        .card .info-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* Código da REF: mais escuro e destacado */
+        .card .ref-code {
+            font-size: 0.9em;
+            color: #222;
+            font-weight: bold;
+            display: block;
+        }
+
+        /* Descrição: Cinza e menor que a REF */
+        .card .description {
+            font-size: 0.78em;
+            color: #757575; /* Cinza */
             line-height: 1.2;
-            /* Se a descrição for muito longa, ela quebra em até 2 linhas e põe reticências */
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 2; /* Limita a 2 linhas para não empurrar o preço */
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
+        /* Preço: Ajustado para não vazar */
         .card .price {
             color: var(--green-primary);
             font-weight: 800;
-            font-size: 1.2em;
-            display: block; /* Garante que o preço ocupe a linha toda se necessário */
-            border-top: 1px solid #eee; /* Uma linha bem discreta para separar */
-            padding-top: 5px;
+            font-size: 1.15em;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 6px;
+            margin-top: 4px;
+            white-space: nowrap; /* Evita que o R$ quebre linha sozinho */
         }
+        
         /* Modal e Outros */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
         .modal-content { background: #fff; width: 450px; margin: 10% auto; padding: 20px; border-radius: 8px; border: 3px solid var(--green-primary); }

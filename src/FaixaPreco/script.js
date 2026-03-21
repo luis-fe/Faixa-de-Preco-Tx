@@ -87,17 +87,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'card';
             
-            // Estrutura atualizada: Div para o texto e Span para o preço
+            // Criamos uma estrutura separada para REF e DESCRIÇÃO
             card.innerHTML = `
-                <div class="ref-desc">
-                    <strong>${p.ref}</strong> - ${p.desc}
+                <div class="info-container">
+                    <span class="ref-code">${p.ref}</span>
+                    <span class="description">${p.desc}</span>
                 </div>
                 <span class="price">
                     ${p.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </span>
             `;
 
-            // Lógica de distribuição nas colunas (Entrada, Inter, Premium)
+            // Distribuição nas colunas
             if (p.preco <= eMax) {
                 cols.entrada.appendChild(card); cont.e++;
             } else if (p.preco <= iMax) {
