@@ -167,9 +167,59 @@ document.addEventListener('DOMContentLoaded', () => {
         premiumLabel.innerText = interMaxInput.value;
     });
 
+    // --- BOTÃO SALVAR FAIXAS (COM ENVIO PARA O BANCO) ---
     document.getElementById('btn-save-ranges').onclick = () => {
-        atualizarKanban();
-        modal.style.display = 'none';
+        const planoAtual = selPlano.value;
+        
+        if (!planoAtual) {
+            alert("Por favor, selecione um plano primeiro.");
+            return;
+        }
+
+        // 1. Pega os botões e altera o texto para mostrar que está carregando
+        const btnSave = document.getElementById('btn-save-ranges');
+        const textoOriginal = btnSave.innerText;
+        btnSave.innerText = "Salvando...";
+        btnSave.disabled = true;
+
+        // 2. Monta o pacote de dados
+        const payload = {
+            plano: planoAtual,
+            linha: modalSelLinha.value,
+            grupo: modalSelGrupo.value,
+            valorEntrada: document.getElementById('entrada-max').value,
+            valorInter: document.getElementById('inter-max').value,
+            // Premium é tudo acima do Intermediário
+            valorPremium: document.getElementById('inter-max').value 
+        };
+
+        // 3. Envia os dados para o servidor PHP
+        fetch('salvar_faixas.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert("Erro do Banco de Dados: " + data.error);
+            } else {
+                // Se deu sucesso, atualiza o Kanban e fecha o modal
+                atualizarKanban();
+                modal.style.display = 'none';
+            }
+        })
+        .catch(err => {
+            console.error("Erro na comunicação:", err);
+            alert("Falha ao comunicar com o servidor.");
+        })
+        .finally(() => {
+            // Devolve o botão ao normal, independentemente de dar erro ou sucesso
+            btnSave.innerText = textoOriginal;
+            btnSave.disabled = false;
+        });
     };
 
     function limparFiltros() {
