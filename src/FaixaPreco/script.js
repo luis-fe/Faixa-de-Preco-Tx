@@ -9,13 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ELEMENTOS DO MODAL ---
     const modal = document.getElementById('configModal');
-    const modalTitle = document.getElementById('modal-plano-title');
-    const modalSelLinha = document.getElementById('modal-filter-linha');
     const modalSelGrupo = document.getElementById('modal-filter-grupo');
-    const interMaxInput = document.getElementById('inter-max');
-    const premiumLabel = document.getElementById('premium-min-label');
     const msgFiltros = document.getElementById('msg-selecione-filtros');
     const areaFaixas = document.getElementById('config-faixas-area');
+    const containerLinhasDinamicas = document.getElementById('linhas-dinamicas-container');
     const btnSave = document.getElementById('btn-save-ranges');
 
     // ==========================================
@@ -59,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 gerarFiltrosCheckboxes();
-                popularSelectsModal();
+                popularGrupoModal();
                 atualizarKanban();
                 document.getElementById('last-sync').innerText = new Date().toLocaleTimeString('pt-BR');
             })
@@ -70,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 2. CRIAR AS CHECKBOXES
+    // 2. CRIAR AS CHECKBOXES DOS FILTROS
     // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
@@ -117,109 +114,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. LÓGICA DO MODAL
+    // 3. LÓGICA DINÂMICA DO MODAL (POR GRUPO)
     // ==========================================
-    function popularSelectsModal() {
-        const uniqueLinhas = [...new Set(produtosBase.map(p => p.linha))].sort();
+    function popularGrupoModal() {
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
-
-        modalSelLinha.innerHTML = '<option value="" disabled selected>Selecione a Linha...</option><option value="TODAS">TODAS AS LINHAS</option>' + 
-            uniqueLinhas.map(l => `<option value="${l}">${l}</option>`).join('');
-        
-        modalSelGrupo.innerHTML = '<option value="" disabled selected>Selecione o Grupo...</option><option value="TODOS">TODOS OS GRUPOS</option>' + 
+        modalSelGrupo.innerHTML = '<option value="" disabled selected>Selecione o Grupo...</option>' + 
             uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
 
-    function verificarSelecaoModal() {
-        if (msgFiltros && areaFaixas) {
-            if (modalSelLinha.value !== "" && modalSelGrupo.value !== "") {
-                msgFiltros.style.display = 'none';
-                areaFaixas.style.display = 'block';
+    // Quando seleciona o grupo no modal, gera as linhas
+    modalSelGrupo.addEventListener('change', () => {
+        const grupoSel = modalSelGrupo.value;
+        containerLinhasDinamicas.innerHTML = '';
+        
+        // Descobre as linhas que existem para este grupo
+        const linhasDoGrupo = [...new Set(produtosBase.filter(p => p.grupo === grupoSel).map(p => p.linha))].sort();
 
-                const amostra = produtosBase.find(p => 
-                    (modalSelLinha.value === "TODAS" || p.linha === modalSelLinha.value) && 
-                    (modalSelGrupo.value === "TODOS" || p.grupo === modalSelGrupo.value)
-                );
-                
-                if (amostra) {
-                    document.getElementById('entrada-max').value = amostra.eMax.toFixed(2);
-                    document.getElementById('inter-min').value = (amostra.eMax + 0.01).toFixed(2);
-                    document.getElementById('inter-max').value = amostra.iMax.toFixed(2);
-                    premiumLabel.innerText = amostra.iMax.toFixed(2);
-                }
-            } else {
-                msgFiltros.style.display = 'block';
-                areaFaixas.style.display = 'none';
-            }
-        }
-    }
+        linhasDoGrupo.forEach(linha => {
+            // Pega as faixas atuais de um produto qualquer desse grupo/linha para preencher o input
+            const amostra = produtosBase.find(p => p.grupo === grupoSel && p.linha === linha);
+            
+            const divRow = document.createElement('div');
+            divRow.style = "display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;";
+            divRow.innerHTML = `
+                <div style="flex: 2; font-weight: bold; font-size: 0.85em;">${linha}</div>
+                <div style="flex: 1.5;"><input type="number" step="0.01" class="in-entrada" data-linha="${linha}" value="${amostra.eMax.toFixed(2)}" style="width: 100%; padding: 5px; border-radius:4px; border:1px solid #ccc;"></div>
+                <div style="flex: 1.5;"><input type="number" step="0.01" class="in-inter" data-linha="${linha}" value="${amostra.iMax.toFixed(2)}" style="width: 100%; padding: 5px; border-radius:4px; border:1px solid #ccc;"></div>
+                <div style="flex: 1; text-align: center; font-size: 0.75em; color: var(--green-primary); font-weight: bold;">> <span class="lbl-premium">${amostra.iMax.toFixed(2)}</span></div>
+            `;
+            
+            // Listener para atualizar a label do premium em tempo real quando digitar no intermediário
+            const inputInter = divRow.querySelector('.in-inter');
+            const labelPremium = divRow.querySelector('.lbl-premium');
+            inputInter.addEventListener('input', () => { labelPremium.innerText = inputInter.value; });
 
-    modalSelLinha.addEventListener('change', verificarSelecaoModal);
-    modalSelGrupo.addEventListener('change', verificarSelecaoModal);
+            containerLinhasDinamicas.appendChild(divRow);
+        });
+
+        msgFiltros.style.display = 'none';
+        areaFaixas.style.display = 'block';
+    });
 
     // ==========================================
-    // 4. LÓGICA MESTRA DO KANBAN
+    // 4. LÓGICA MESTRA DO KANBAN E BI
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fColecoes = getChecked(listColecao);
-        const fLinhasHeader = getChecked(listLinha);
-        const fGruposHeader = getChecked(listGrupo);
+        const fLinhas = getChecked(listLinha);
+        const fGrupos = getChecked(listGrupo);
 
-        // Filtro Cruzado (BI): Descobre o que é válido para ser exibido
-        const validColecoes = new Set(produtosBase.filter(p => fLinhasHeader.includes(p.linha) && fGruposHeader.includes(p.grupo)).map(p => p.colecao));
-        const validLinhas = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fGruposHeader.includes(p.grupo)).map(p => p.linha));
-        const validGrupos = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fLinhasHeader.includes(p.linha)).map(p => p.grupo));
+        // Filtro Cruzado (BI)
+        const validColecoes = new Set(produtosBase.filter(p => fLinhas.includes(p.linha) && fGrupos.includes(p.grupo)).map(p => p.colecao));
+        const validLinhas = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fGrupos.includes(p.grupo)).map(p => p.linha));
+        const validGrupos = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fLinhas.includes(p.linha)).map(p => p.grupo));
 
-        // --- A MÁGICA DOS ITENS EFETIVOS ---
-        // Cruza os marcados com os visíveis para saber a verdade absoluta
-        const effectiveColecoes = fColecoes.filter(x => validColecoes.has(x));
-        const effectiveLinhas = fLinhasHeader.filter(x => validLinhas.has(x));
-        const effectiveGrupos = fGruposHeader.filter(x => validGrupos.has(x));
+        // Itens Efetivos (Marcados AND Visíveis)
+        const effCol = fColecoes.filter(x => validColecoes.has(x));
+        const effLin = fLinhas.filter(x => validLinhas.has(x));
+        const effGru = fGrupos.filter(x => validGrupos.has(x));
 
-        // Atualiza a legenda dos botões
-        const atualizarLegendaFiltro = (idSpan, arrayEfetivo) => {
-            const spanElement = document.getElementById(idSpan);
-            if (arrayEfetivo.length === 1) {
-                spanElement.innerText = `(${arrayEfetivo[0]})`;
-            } else if (arrayEfetivo.length > 1) {
-                spanElement.innerText = `(Vários itens)`;
-            } else {
-                spanElement.innerText = `(Nenhum)`;
-            }
+        // Atualiza Subtítulos dos botões
+        const setSub = (id, arr) => {
+            const el = document.getElementById(id);
+            if (arr.length === 1) el.innerText = `(${arr[0]})`;
+            else if (arr.length > 1) el.innerText = `(Vários itens)`;
+            else el.innerText = `(Nenhum)`;
         };
+        setSub('sub-colecao', effCol);
+        setSub('sub-linha', effLin);
+        setSub('sub-grupo', effGru);
 
-        atualizarLegendaFiltro('sub-colecao', effectiveColecoes);
-        atualizarLegendaFiltro('sub-linha', effectiveLinhas);
-        atualizarLegendaFiltro('sub-grupo', effectiveGrupos);
-
-        // Esconde o que não pertence ao cruzamento no menu suspenso
-        const updateVisibility = (container, validSet) => {
-            container.querySelectorAll('.item-checkbox').forEach(chk => {
-                const label = chk.closest('label');
-                if (validSet.has(chk.value)) {
-                    label.style.display = 'block';
-                } else {
-                    label.style.display = 'none';
-                }
+        // Atualiza visibilidade no menu suspenso
+        const updateVis = (cont, vSet) => {
+            cont.querySelectorAll('.item-checkbox').forEach(chk => {
+                chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none';
             });
         };
+        updateVis(listColecao, validColecoes);
+        updateVis(listLinha, validLinhas);
+        updateVis(listGrupo, validGrupos);
 
-        updateVisibility(listColecao, validColecoes);
-        updateVisibility(listLinha, validLinhas);
-        updateVisibility(listGrupo, validGrupos);
-
-        const fLinhaModal = modalSelLinha.value;
-        const fGrupoModal = modalSelGrupo.value;
-
-        // Distribuição dos Cards
-        const filtrados = produtosBase.filter(p => {
-            const matchColecao = fColecoes.includes(p.colecao);
-            const matchLinha = (!fLinhaModal || fLinhaModal === "TODAS") ? fLinhasHeader.includes(p.linha) : (p.linha === fLinhaModal);
-            const matchGrupo = (!fGrupoModal || fGrupoModal === "TODOS") ? fGruposHeader.includes(p.grupo) : (p.grupo === fGrupoModal);
-            
-            return matchColecao && matchLinha && matchGrupo;
-        });
+        // Filtra os produtos para o Kanban
+        const filtrados = produtosBase.filter(p => fColecoes.includes(p.colecao) && fLinhas.includes(p.linha) && fGrupos.includes(p.grupo));
 
         const cols = {
             entrada: document.getElementById('cards-entrada'),
@@ -234,156 +211,102 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'card';
             
-            let textoB2C = '';
-            if (p.precoB2C > 0) {
-                textoB2C = `<span class="price-b2c">(B2C - ${p.precoB2C.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})})</span>`;
-            }
-
-            let textoMkp = '';
-            if (p.mkp > 0) {
-                textoMkp = `<span class="markup">Mkt: ${p.mkp.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
-            }
+            let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
+            let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkt: ${p.mkp.toFixed(2)}</span>` : '';
 
             card.innerHTML = `
-                <div class="info-container">
-                    <span class="ref-code">${p.ref}</span>
-                    <span class="description">${p.desc}</span>
-                </div>
+                <div class="info-container"><span class="ref-code">${p.ref}</span><span class="description">${p.desc}</span></div>
                 <div class="price-container">
-                    <div class="b2b-row">
-                        <span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
-                        ${textoMkp}
-                    </div>
-                    ${textoB2C}
-                </div>
-            `;
+                    <div class="b2b-row"><span class="price">R$ ${p.preco.toFixed(2)}</span>${mkpHtml}</div>
+                    ${b2cHtml}
+                </div>`;
 
-            if (p.preco <= p.eMax) {
-                cols.entrada.appendChild(card); cont.e++;
-            } else if (p.preco <= p.iMax) {
-                cols.inter.appendChild(card); cont.i++;
-            } else {
-                cols.premium.appendChild(card); cont.p++;
-            }
+            if (p.preco <= p.eMax) { cols.entrada.appendChild(card); cont.e++; }
+            else if (p.preco <= p.iMax) { cols.inter.appendChild(card); cont.i++; }
+            else { cols.premium.appendChild(card); cont.p++; }
         });
 
         document.getElementById('mix-entrada').innerText = cont.e;
         document.getElementById('mix-inter').innerText = cont.i;
         document.getElementById('mix-premium').innerText = cont.p;
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
-        
-        const infoEntrada = document.getElementById('info-range-entrada');
-        const infoInter = document.getElementById('info-range-inter');
-        const infoPremium = document.getElementById('info-range-premium');
 
-        // REGRA AJUSTADA: Aparece se tiver 1 Linha Efetiva OU 1 Grupo Efetivo
-        if ((effectiveLinhas.length === 1 || effectiveGrupos.length === 1) && filtrados.length > 0) {
-            const amostra = filtrados[0]; 
-            infoEntrada.innerText = `Até R$ ${amostra.eMax.toFixed(2)}`;
-            infoInter.innerText = `R$ ${(amostra.eMax + 0.01).toFixed(2)} - R$ ${amostra.iMax.toFixed(2)}`;
-            infoPremium.innerText = `Acima de R$ ${amostra.iMax.toFixed(2)}`;
-            
-            infoEntrada.style.display = 'block';
-            infoInter.style.display = 'block';
-            infoPremium.style.display = 'block';
+        // Exibição de faixa no topo das colunas (Sempre que 1 Linha OU 1 Grupo estiverem isolados)
+        const rangeE = document.getElementById('info-range-entrada'), rangeI = document.getElementById('info-range-inter'), rangeP = document.getElementById('info-range-premium');
+        if ((effLin.length === 1 || effGru.length === 1) && filtrados.length > 0) {
+            rangeE.innerText = `Até R$ ${filtrados[0].eMax.toFixed(2)}`;
+            rangeI.innerText = `R$ ${(filtrados[0].eMax + 0.01).toFixed(2)} - R$ ${filtrados[0].iMax.toFixed(2)}`;
+            rangeE.style.display = rangeI.style.display = rangeP.style.display = 'block';
         } else {
-            infoEntrada.style.display = 'none';
-            infoInter.style.display = 'none';
-            infoPremium.style.display = 'none';
+            rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none';
         }
     }
 
     // ==========================================
-    // 5. CONTROLES DE INTERFACE
+    // 5. SALVAR EM LOTE (LOOP ASSÍNCRONO)
     // ==========================================
+    btnSave.onclick = async () => {
+        const plano = selPlano.value;
+        const grupo = modalSelGrupo.value;
+        const rows = containerLinhasDinamicas.querySelectorAll('.in-entrada');
+        
+        if (!plano || !grupo) return;
+
+        const originalText = btnSave.innerText;
+        btnSave.innerText = "Salvando todas...";
+        btnSave.disabled = true;
+
+        try {
+            for (let inputE of rows) {
+                const linha = inputE.dataset.linha;
+                const vEntrada = inputE.value;
+                const vInter = containerLinhasDinamicas.querySelector(`.in-inter[data-linha="${linha}"]`).value;
+
+                // Envia linha por linha para o PHP
+                await fetch('salvar_faixas.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plano, linha, grupo, valorEntrada: vEntrada, valorInter: vInter, valorPremium: vInter })
+                });
+            }
+            
+            modal.style.display = 'none';
+            selPlano.dispatchEvent(new Event('change')); // Recarrega Kanban
+        } catch (err) {
+            alert("Erro ao salvar algumas faixas.");
+        } finally {
+            btnSave.innerText = originalText;
+            btnSave.disabled = false;
+        }
+    };
+
+    // --- CONTROLES DE ABRIR/FECHAR MODAL ---
     document.getElementById('btn-config').onclick = () => {
         const plano = selPlano.value;
-        modalTitle.innerText = plano ? "Configurando: " + plano : "⚠️ Selecione o plano primeiro";
-        modalTitle.style.color = plano ? "var(--green-primary)" : "red";
+        if (!plano) { alert("Selecione o plano primeiro"); return; }
         
-        // Pega apenas os marcados que estão visíveis na tela
-        const getEffectiveChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked'))
-            .filter(c => c.closest('label').style.display !== 'none')
-            .map(c => c.value);
-            
-        const eLinhas = getEffectiveChecked(listLinha);
-        const eGrupos = getEffectiveChecked(listGrupo);
-
-        modalSelLinha.value = "";
+        // Tenta pré-selecionar o grupo se houver apenas um efetivo na tela
+        const getEffChecked = (cont) => Array.from(cont.querySelectorAll('.item-checkbox:checked')).filter(c => c.closest('label').style.display !== 'none').map(c => c.value);
+        const effGru = getEffChecked(listGrupo);
+        
         modalSelGrupo.value = "";
+        if (effGru.length === 1) {
+            modalSelGrupo.value = effGru[0];
+            modalSelGrupo.dispatchEvent(new Event('change'));
+        } else {
+            msgFiltros.style.display = 'block';
+            areaFaixas.style.display = 'none';
+        }
 
-        // Se o usuário só estiver vendo 1 efetivo, pré-preenche o modal pra ele!
-        if (eLinhas.length === 1) modalSelLinha.value = eLinhas[0];
-        if (eGrupos.length === 1) modalSelGrupo.value = eGrupos[0];
-
-        verificarSelecaoModal();
         modal.style.display = 'block';
     };
 
     document.getElementById('close-modal').onclick = () => modal.style.display = 'none';
-    window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
-
-    document.getElementById('entrada-max').addEventListener('input', (e) => {
-        document.getElementById('inter-min').value = (parseFloat(e.target.value) + 0.01).toFixed(2) || "0.00";
-    });
-
-    interMaxInput.addEventListener('input', () => {
-        premiumLabel.innerText = interMaxInput.value;
-    });
-
-    // ==========================================
-    // 6. SALVAR FAIXAS NO BANCO
-    // ==========================================
-    btnSave.onclick = () => {
-        const planoAtual = selPlano.value;
-        
-        if (!planoAtual) {
-            alert("Por favor, selecione um plano primeiro.");
-            return;
-        }
-
-        const textoOriginal = btnSave.innerText;
-        btnSave.innerText = "Salvando...";
-        btnSave.disabled = true;
-
-        const payload = {
-            plano: planoAtual,
-            linha: modalSelLinha.value,
-            grupo: modalSelGrupo.value,
-            valorEntrada: document.getElementById('entrada-max').value,
-            valorInter: document.getElementById('inter-max').value,
-            valorPremium: document.getElementById('inter-max').value 
-        };
-
-        fetch('salvar_faixas.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) {
-                alert("Erro do Banco de Dados: " + data.error);
-            } else {
-                modal.style.display = 'none';
-                selPlano.dispatchEvent(new Event('change')); 
-            }
-        })
-        .catch(err => {
-            console.error("Erro na comunicação:", err);
-            alert("Falha ao comunicar com o servidor.");
-        })
-        .finally(() => {
-            btnSave.innerText = textoOriginal;
-            btnSave.disabled = false;
-        });
-    };
+    window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
 
     function limparFiltros() {
         produtosBase = [];
-        listColecao.innerHTML = '';
-        listLinha.innerHTML = '';
-        listGrupo.innerHTML = '';
+        listColecao.innerHTML = ''; listLinha.innerHTML = ''; listGrupo.innerHTML = '';
         atualizarKanban();
     }
 });

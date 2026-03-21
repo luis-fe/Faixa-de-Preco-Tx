@@ -191,52 +191,35 @@ require_once __DIR__ . '/../../db.php';
         </div>
     </div>
 
-    <div id="configModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" id="close-modal">&times;</span>
+<div id="configModal" class="modal">
+        <div class="modal-content" style="width: 600px;"> <span class="close-modal" id="close-modal">&times;</span>
             
-            <h2 id="modal-plano-title" style="margin: 0 0 5px 0; font-size: 1.4em;">Selecione um plano</h2>
+            <h2 id="modal-plano-title" style="margin: 0 0 5px 0; font-size: 1.4em;">Configurar Faixas</h2>
             <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
 
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <div style="flex: 1;">
-                    <label style="font-size: 0.75em; font-weight: bold; display: block; margin-bottom: 5px;">LINHA</label>
-                    <select id="modal-filter-linha" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        </select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="font-size: 0.75em; font-weight: bold; display: block; margin-bottom: 5px;">GRUPO</label>
-                    <select id="modal-filter-grupo" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        </select>
-                </div>
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 0.75em; font-weight: bold; display: block; margin-bottom: 5px;">1. SELECIONE O GRUPO</label>
+                <select id="modal-filter-grupo" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--green-primary); font-weight: bold;">
+                    </select>
             </div>
 
             <div id="msg-selecione-filtros" style="text-align: center; color: #757575; padding: 20px 0; font-style: italic;">
-                ⚠️ Selecione uma Linha e um Grupo acima para configurar as faixas.
+                ⚠️ Selecione um Grupo para carregar as Linhas vinculadas.
             </div>
 
             <div id="config-faixas-area" style="display: none;">
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <tr style="height: 40px;">
-                        <td><strong>Entrada</strong></td>
-                        <td style="text-align: right;">R$ <input type="number" id="entrada-min" value="0" style="width: 65px; padding: 4px;" disabled> à</td>
-                        <td>R$ <input type="number" id="entrada-max" value="99.99" style="width: 65px; padding: 4px;"></td>
-                    </tr>
-                    <tr style="height: 40px;">
-                        <td><strong>Intermediário</strong></td>
-                        <td style="text-align: right;">R$ <input type="number" id="inter-min" value="100.00" style="width: 65px; padding: 4px;" disabled> à</td>
-                        <td>R$ <input type="number" id="inter-max" value="299.99" style="width: 65px; padding: 4px;"></td>
-                    </tr>
-                    <tr style="height: 40px;">
-                        <td colspan="2"><strong>Premium</strong></td>
-                        <td style="color: var(--green-primary); font-weight: bold;">
-                            Acima de R$ <span id="premium-min-label">299.99</span>
-                        </td>
-                    </tr>
-                </table>
+                <div style="display: flex; font-size: 0.7em; font-weight: bold; color: #666; margin-bottom: 10px; padding: 0 10px;">
+                    <div style="flex: 2;">LINHA</div>
+                    <div style="flex: 1.5; text-align: center;">ENTRADA (ATÉ)</div>
+                    <div style="flex: 1.5; text-align: center;">INTERMED. (ATÉ)</div>
+                    <div style="flex: 1; text-align: center;">PREMIUM</div>
+                </div>
+                
+                <div id="linhas-dinamicas-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #eee; padding: 10px; border-radius: 4px;">
+                    </div>
 
-                <div class="modal-footer" style="margin-top: 20px; text-align: right;">
-                    <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%; border: none; padding: 12px;">Salvar e Atualizar Kanban</button>
+                <div class="modal-footer" style="text-align: right;">
+                    <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%; border: none; padding: 15px; font-size: 1em;">Salvar Todas as Faixas do Grupo</button>
                 </div>
             </div>
         </div>
