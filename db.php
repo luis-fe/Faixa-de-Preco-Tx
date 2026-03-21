@@ -1,10 +1,13 @@
 <?php
 // Tenta pegar as credenciais do Railway (ou usa valores padrão para teste local)
-$host = getenv('PGHOST') ?: 'localhost';
-$port = getenv('PGPORT') ?: '5432';
-$dbname = getenv('PGDATABASE') ?: 'postgres';
-$user = getenv('PGUSER') ?: 'postgres';
-$password = getenv('PGPASSWORD') ?: 'sua_senha_local';
+$host = $_ENV['PGHOST'] ?? getenv('PGHOST');
+$port = $_ENV['PGPORT'] ?? getenv('PGPORT');
+$dbname = $_ENV['PGDATABASE'] ?? getenv('PGDATABASE');
+$user = $_ENV['PGUSER'] ?? getenv('PGUSER');
+$pass = $_ENV['PGPASSWORD'] ?? getenv('PGPASSWORD');
+
+$dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+$pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
 try {
     // Cria a conexão com o PostgreSQL usando PDO
