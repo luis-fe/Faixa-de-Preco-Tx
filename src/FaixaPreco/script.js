@@ -86,11 +86,18 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
+            
+            // Estrutura atualizada: Div para o texto e Span para o preço
             card.innerHTML = `
-                <span class="ref">${p.ref} - ${p.desc}</span>
-                <span class="price">R$ ${p.preco.toFixed(2)}</span>
+                <div class="ref-desc">
+                    <strong>${p.ref}</strong> - ${p.desc}
+                </div>
+                <span class="price">
+                    ${p.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
             `;
 
+            // Lógica de distribuição nas colunas (Entrada, Inter, Premium)
             if (p.preco <= eMax) {
                 cols.entrada.appendChild(card); cont.e++;
             } else if (p.preco <= iMax) {

@@ -121,13 +121,42 @@ require_once __DIR__ . '/../../db.php';
             padding: 15px; overflow-y: auto; flex-grow: 1; background-color: #fafafa;
             display: grid; grid-template-columns: repeat(3, 1fr); grid-gap: 15px; align-content: start;
         }
+       
+        /* CARD ATUALIZADO */
         .card {
-            background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
-            padding: 12px 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #333; gap: 6px;
+            background-color: var(--white);
+            border: 1px solid var(--green-medium);
+            border-top: 4px solid var(--green-primary);
+            padding: 12px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column; /* Garante que os itens fiquem um abaixo do outro */
+            gap: 8px; /* Espaço entre a descrição e o preço */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 80px;
+            justify-content: space-between;
         }
-        .card .ref { font-size: 0.8em; color: #666; }
-        .card .price { color: var(--green-primary); font-weight: bold; font-size: 1.1em; }
 
+        .card .ref-desc {
+            font-size: 0.85em;
+            color: #333;
+            font-weight: 500;
+            line-height: 1.2;
+            /* Se a descrição for muito longa, ela quebra em até 2 linhas e põe reticências */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card .price {
+            color: var(--green-primary);
+            font-weight: 800;
+            font-size: 1.2em;
+            display: block; /* Garante que o preço ocupe a linha toda se necessário */
+            border-top: 1px solid #eee; /* Uma linha bem discreta para separar */
+            padding-top: 5px;
+        }
         /* Modal e Outros */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
         .modal-content { background: #fff; width: 450px; margin: 10% auto; padding: 20px; border-radius: 8px; border: 3px solid var(--green-primary); }
