@@ -1,4 +1,5 @@
 <?php
+session_save_path(__DIR__); // Obriga o Docker a salvar a sessão aqui
 session_start();
 // Se o usuário não estiver logado, redireciona para a tela de login (index.php)
 if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
