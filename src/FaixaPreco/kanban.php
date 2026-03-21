@@ -229,34 +229,42 @@ require_once __DIR__ . '/../../db.php';
         </div>
     </div>
 
-    <div id="summaryModal" class="modal">
-    <div class="modal-content" style="width: 700px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
-        <span class="close-modal" id="close-summary">&times;</span>
-        <h2 style="margin: 0;">Resumo do Mix por Grupo/Linha</h2>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-        
-        <div style="background: #f1f8e9; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-            <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary);">FILTRAR POR GRUPO:</label>
-            <select id="resumo-filter-grupo" style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
-                <option value="TODOS">TODOS OS GRUPOS</option>
-            </select>
-        </div>
-        
-        <div style="overflow-y: auto; flex-grow: 1;">
-            <table id="table-resumo">
-                <thead>
-                    <tr>
-                        <th onclick="ordenarResumo('grupo')">GRUPO ↕️</th>
-                        <th onclick="ordenarResumo('linha')">LINHA ↕️</th>
-                        <th onclick="ordenarResumo('total')" style="text-align: center;">TOTAL PRODUTOS ↕️</th>
-                    </tr>
-                </thead>
-                <tbody id="body-resumo">
-                    </tbody>
-            </table>
+<div id="summaryModal" class="modal">
+        <div class="modal-content" style="width: 750px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+            <span class="close-modal" id="close-summary">&times;</span>
+            <h2 style="margin: 0; display: flex; justify-content: space-between; align-items: center;">
+                Resumo do Mix
+                <button id="btn-toggle-colecao" style="font-size: 0.6em; padding: 6px 12px; background: var(--green-medium); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    ➕ Expandir Coleções
+                </button>
+            </h2>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+            
+            <div style="background: #f1f8e9; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary);">FILTRAR POR GRUPO:</label>
+                <select id="resumo-filter-grupo" style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
+                    <option value="TODOS">TODOS OS GRUPOS</option>
+                </select>
+            </div>
+            
+            <div style="overflow-y: auto; flex-grow: 1;">
+                <table id="table-resumo">
+                    <thead>
+                        <tr>
+                            <th id="th-colecao" onclick="ordenarResumo('colecao')" style="display: none;">COLEÇÃO ↕️</th>
+                            <th onclick="ordenarResumo('grupo')">GRUPO ↕️</th>
+                            <th onclick="ordenarResumo('linha')">LINHA ↕️</th>
+                            <th onclick="ordenarResumo('total')" style="text-align: center;">TOTAL PRODUTOS ↕️</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body-resumo">
+                        </tbody>
+                    <tfoot id="tfoot-resumo" style="position: sticky; bottom: 0; background: var(--green-primary); color: white; font-weight: bold;">
+                        </tfoot>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
     <div class="footer">Sincronizado às: <span id="last-sync">--:--</span></div>
 
