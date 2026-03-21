@@ -100,14 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dadosMatriz = Object.values(linhasMap);
         
-        // Mantém a ordenação atual, a não ser que uma coleção ordenada suma no filtro
         if (!['grupo', 'linha', 'total', 'padrao'].includes(sortConfig.key) && !colecoesAtuais.includes(sortConfig.key)) {
             sortConfig.key = 'padrao';
         }
         window.ordenarMatriz(sortConfig.key, sortConfig.dir);
     }
 
-    // Lógica de ordenação (inclui a nova opção 'padrao')
     window.ordenarMatriz = (key, forcedDir = null) => {
         if (key === 'padrao') {
             sortConfig.key = 'padrao';
@@ -131,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function renderizarMatrizHTML() {
-        // --- THEAD ---
+        // --- THEAD --- (O CSS agora pinta tudo de cinza)
         let theadHtml = `<tr>
             <th onclick="ordenarMatriz('grupo')" style="width: 25%;">GRUPO ↕️</th>
             <th onclick="ordenarMatriz('linha')" style="width: 35%;">LINHA ↕️</th>`;
@@ -141,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 theadHtml += `<th style="text-align: center;" onclick="ordenarMatriz('${c}')">${c} ↕️</th>`;
             });
         }
-        theadHtml += `<th style="text-align: center; background: var(--green-medium); width: 20%;" onclick="ordenarMatriz('total')">TOTAL PRODUTOS ↕️</th></tr>`;
+        theadHtml += `<th style="text-align: center; width: 20%;" onclick="ordenarMatriz('total')">TOTAL PRODUTOS ↕️</th></tr>`;
         theadResumo.innerHTML = theadHtml;
 
         // --- TBODY ---
