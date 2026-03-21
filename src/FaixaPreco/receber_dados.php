@@ -21,23 +21,25 @@ if (!empty($json_recebido)) {
             $sqlPlano = 'INSERT INTO "Plano" (plano) VALUES (:plano) ON CONFLICT (plano) DO NOTHING';
             $pdo->prepare($sqlPlano)->execute([':plano' => $nomePlano]);
 
-            // 3. LIMPEZA (A estratégia "Drop and Replace"): 
-            // Apaga todos os preços salvos referentes APENAS a este plano antes de inserir os novos.
+            // 3. LIMPEZA ("Drop and Replace"): Apaga os dados antigos do plano atual
             $sqlLimpar = 'DELETE FROM "produto_plano" WHERE plano = :plano';
             $pdo->prepare($sqlLimpar)->execute([':plano' => $nomePlano]);
 
-            // 4. Prepara os SQLs de Inserção
+            // 4. Prepara os SQLs de Inserção (COM PROTEÇÃO CONTRA DUPLICADOS NA PLANILHA)
             
-            // Produto (Mantém a lógica de UPSERT pois o produto pode existir em outros planos)
             $sqlProd = 'INSERT INTO "produto" (referencia, descricao, colecao, linha, grupo, "classificacao") 
                         VALUES (:ref, :desc, :col, :lin, :gru, :class)
                         ON CONFLICT (referencia) DO UPDATE SET 
                         descricao = EXCLUDED.descricao, colecao = EXCLUDED.colecao, 
                         linha = EXCLUDED.linha, grupo = EXCLUDED.grupo, "classificacao" = EXCLUDED."classificacao"';
 
-            // Produto_Plano (Apenas INSERT agora, pois já apagamos tudo no passo 3)
+            // DEVOLVEMOS O "ON CONFLICT" PARA BLINDAR CONTRA DUPLICAÇÕES NO EXCEL
             $sqlPreco = 'INSERT INTO "produto_plano" (referencia, plano, "precoB2B", "precoB2C", "MkpB2B") 
-                         VALUES (:ref, :plano, :precoB2B, :precoB2C, :mkpB2B)';
+                         VALUES (:ref, :plano, :precoB2B, :precoB2C, :mkpB2B)
+                         ON CONFLICT (referencia, plano) DO UPDATE SET 
+                         "precoB2B" = EXCLUDED."precoB2B",
+                         "precoB2C" = EXCLUDED."precoB2C",
+                         "MkpB2B" = EXCLUDED."MkpB2B"';
 
             $stmtProd = $pdo->prepare($sqlProd);
             $stmtPreco = $pdo->prepare($sqlPreco);
@@ -49,9 +51,7 @@ if (!empty($json_recebido)) {
                     // --- Tratamento do Markup (Arredondamento para 2 casas) ---
                     $mkp = $item['MkpB2B'] ?? '';
                     if ($mkp !== '') {
-                        // Troca vírgula por ponto (caso venha no padrão brasileiro) e converte para Float
                         $mkpNumerico = (float) str_replace(',', '.', $mkp);
-                        // Arredonda para 2 casas e converte de volta para string para salvar no banco
                         $mkp = (string) round($mkpNumerico, 2);
                     }
 
@@ -71,7 +71,7 @@ if (!empty($json_recebido)) {
                         ':plano'    => $nomePlano,
                         ':precoB2B' => $item['preco'] ?? '',      
                         ':precoB2C' => $item['precoB2C'] ?? '',
-                        ':mkpB2B'   => $mkp // Agora vai entrar arredondado!
+                        ':mkpB2B'   => $mkp // Entrando arredondado
                     ]);
                     
                     $contador++;
@@ -83,7 +83,7 @@ if (!empty($json_recebido)) {
             
             echo "Sincronizado com Sucesso!\n";
             echo "Plano: '$nomePlano'\n";
-            echo "Ação: Base antiga limpa e $contador produtos novos/atualizados gravados no banco.";
+            echo "Ação: Base limpa e $contador produtos gravados (duplicidades da planilha foram mescladas).";
 
         } catch (Exception $e) {
             $pdo->rollBack();
