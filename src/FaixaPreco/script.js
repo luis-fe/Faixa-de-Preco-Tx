@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
             .then(async res => {
-                // Se o servidor devolver erro 500, lê a mensagem de erro que o PHP mandou
                 if (!res.ok) {
                     const errorData = await res.json();
                     throw new Error(errorData.error || "Erro desconhecido no servidor.");
@@ -57,23 +56,45 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(err => {
                 console.error("Erro Crítico ao buscar dados:", err);
-                alert("Falha: " + err.message); // Agora o erro pula na tela!
+                alert("Falha: " + err.message); 
             });
     });
 
     // ==========================================
-    // 2. CRIAR AS CHECKBOXES (MENUS SUSPENSOS)
+    // 2. CRIAR AS CHECKBOXES (COM "SELECIONAR TUDO")
     // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
 
         const preencher = (container, data) => {
-            container.innerHTML = data.map(val => `
-                <label><input type="checkbox" value="${val}" checked> ${val}</label>
+            // Cria o HTML com o botão "Selecionar Tudo" no topo
+            let html = `
+                <label style="border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 8px; color: var(--green-primary);">
+                    <input type="checkbox" class="select-all" checked> <strong>Selecionar Tudo</strong>
+                </label>
+            `;
+            html += data.map(val => `
+                <label><input type="checkbox" class="item-checkbox" value="${val}" checked> ${val}</label>
             `).join('');
             
-            container.querySelectorAll('input').forEach(chk => {
-                chk.addEventListener('change', atualizarKanban);
+            container.innerHTML = html;
+
+            const chkAll = container.querySelector('.select-all');
+            const chkItems = container.querySelectorAll('.item-checkbox');
+
+            // Evento: Clicar em "Selecionar Tudo"
+            chkAll.addEventListener('change', (e) => {
+                chkItems.forEach(chk => chk.checked = e.target.checked);
+                atualizarKanban();
+            });
+
+            // Evento: Clicar em itens individuais (atualiza o status do "Selecionar Tudo")
+            chkItems.forEach(chk => {
+                chk.addEventListener('change', () => {
+                    const todosMarcados = Array.from(chkItems).every(c => c.checked);
+                    chkAll.checked = todosMarcados;
+                    atualizarKanban();
+                });
             });
         };
 
@@ -126,7 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. LÓGICA MESTRA DO KANBAN
     // ==========================================
     function atualizarKanban() {
-        const getChecked = (container) => Array.from(container.querySelectorAll('input:checked')).map(c => c.value);
+        // Pega apenas as checkboxes normais (ignora o "Selecionar Tudo")
+        const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fColecoes = getChecked(listColecao);
         const fLinhasHeader = getChecked(listLinha);
         const fGruposHeader = getChecked(listGrupo);
@@ -176,9 +198,27 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-premium').innerText = cont.p;
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
         
-        document.getElementById('info-range-entrada').innerText = `Até 1/3 do Mix (Dinâmico)`;
-        document.getElementById('info-range-inter').innerText = `Até 2/3 do Mix (Dinâmico)`;
-        document.getElementById('info-range-premium').innerText = `Acima de 2/3 (Dinâmico)`;
+        // --- LÓGICA DE EXIBIÇÃO DAS FAIXAS NO CABEÇALHO DAS COLUNAS ---
+        const infoEntrada = document.getElementById('info-range-entrada');
+        const infoInter = document.getElementById('info-range-inter');
+        const infoPremium = document.getElementById('info-range-premium');
+
+        // Se o usuário selecionou exatamente UMA Linha e UM Grupo (e existem produtos)
+        if (fLinhasHeader.length === 1 && fGruposHeader.length === 1 && filtrados.length > 0) {
+            const amostra = filtrados[0]; // Pega as faixas do primeiro produto dessa combinação
+            infoEntrada.innerText = `Até R$ ${amostra.eMax.toFixed(2)}`;
+            infoInter.innerText = `R$ ${(amostra.eMax + 0.01).toFixed(2)} - R$ ${amostra.iMax.toFixed(2)}`;
+            infoPremium.innerText = `Acima de R$ ${amostra.iMax.toFixed(2)}`;
+            
+            infoEntrada.style.display = 'block';
+            infoInter.style.display = 'block';
+            infoPremium.style.display = 'block';
+        } else {
+            // Se tiver várias linhas/grupos ou nenhum selecionado, esconde as faixas
+            infoEntrada.style.display = 'none';
+            infoInter.style.display = 'none';
+            infoPremium.style.display = 'none';
+        }
     }
 
     // ==========================================
