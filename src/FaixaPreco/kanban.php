@@ -230,14 +230,9 @@ require_once __DIR__ . '/../../db.php';
     </div>
 
 <div id="summaryModal" class="modal">
-        <div class="modal-content" style="width: 750px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="modal-content" style="width: 800px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
             <span class="close-modal" id="close-summary">&times;</span>
-            <h2 style="margin: 0; display: flex; justify-content: space-between; align-items: center;">
-                Resumo do Mix
-                <button id="btn-toggle-colecao" style="font-size: 0.6em; padding: 6px 12px; background: var(--green-medium); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    ➕ Expandir Coleções
-                </button>
-            </h2>
+            <h2 style="margin: 0;">Resumo do Mix</h2>
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
             
             <div style="background: #f1f8e9; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
@@ -251,7 +246,7 @@ require_once __DIR__ . '/../../db.php';
                 <table id="table-resumo">
                     <thead>
                         <tr>
-                            <th id="th-colecao" onclick="ordenarResumo('colecao')" style="display: none;">COLEÇÃO ↕️</th>
+                            <th onclick="ordenarResumo('colecao')">COLEÇÃO ↕️</th>
                             <th onclick="ordenarResumo('grupo')">GRUPO ↕️</th>
                             <th onclick="ordenarResumo('linha')">LINHA ↕️</th>
                             <th onclick="ordenarResumo('total')" style="text-align: center;">TOTAL PRODUTOS ↕️</th>

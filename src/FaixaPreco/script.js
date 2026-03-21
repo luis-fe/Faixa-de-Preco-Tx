@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let produtosBase = []; 
     let dadosResumo = []; 
     let sortConfig = { key: 'total', dir: 'desc' };
-    let modoColecao = false; // Controla se a coleção está expandida
 
     // --- ELEMENTOS ---
     const selPlano = document.getElementById('filter-plano');
@@ -20,8 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const tfootResumo = document.getElementById('tfoot-resumo');
     const btnAbrirResumo = document.getElementById('btn-resumo');
     const resumoFilterGrupo = document.getElementById('resumo-filter-grupo');
-    const btnToggleColecao = document.getElementById('btn-toggle-colecao');
-    const thColecao = document.getElementById('th-colecao');
 
     // ==========================================
     // 1. BUSCAR DADOS
@@ -53,15 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 2. RESUMO DO MIX (EXPANSÍVEL E TOTALIZADO)
+    // 2. RESUMO DO MIX (COM COLEÇÃO E TOTAL)
     // ==========================================
     btnAbrirResumo.onclick = () => {
         if (produtosBase.length === 0) { alert("Selecione um plano primeiro!"); return; }
-        modoColecao = false;
-        thColecao.style.display = 'none';
-        btnToggleColecao.innerText = "➕ Expandir Coleções";
+        
         processarDadosResumo();
         
+        // Popula os grupos do resumo
         const uniqueGrupos = [...new Set(produtosBase.map(d => d.grupo))].sort();
         resumoFilterGrupo.innerHTML = '<option value="TODOS">TODOS OS GRUPOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
         
@@ -69,21 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
         modalSummary.style.display = 'block';
     };
 
-    btnToggleColecao.onclick = () => {
-        modoColecao = !modoColecao;
-        thColecao.style.display = modoColecao ? 'table-cell' : 'none';
-        btnToggleColecao.innerText = modoColecao ? "➖ Ocultar Coleções" : "➕ Expandir Coleções";
-        processarDadosResumo();
-        ordenarResumo(sortConfig.key, sortConfig.dir); // Mantém a ordenação atual
-    };
-
     resumoFilterGrupo.addEventListener('change', () => renderizarTabelaResumo());
 
     function processarDadosResumo() {
         const mapResumo = {};
         produtosBase.forEach(p => {
-            // A chave muda dependendo se estamos agrupando com coleção ou não
-            const key = modoColecao ? `${p.colecao}|${p.grupo}|${p.linha}` : `${p.grupo}|${p.linha}`;
+            // A chave agora sempre inclui a Coleção
+            const key = `${p.colecao}|${p.grupo}|${p.linha}`;
             if (!mapResumo[key]) {
                 mapResumo[key] = { colecao: p.colecao, grupo: p.grupo, linha: p.linha, total: 0 };
             }
@@ -100,15 +88,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         bodyResumo.innerHTML = filtrados.map(item => {
             somaTotal += item.total;
-            const tdColecao = modoColecao ? `<td style="color: #666; font-size: 0.9em;">${item.colecao}</td>` : '';
-            return `<tr>${tdColecao}<td>${item.grupo}</td><td>${item.linha}</td><td style="text-align: center; font-weight: bold; color: var(--green-primary);">${item.total}</td></tr>`;
+            return `<tr>
+                <td style="color: #666; font-size: 0.9em;">${item.colecao}</td>
+                <td>${item.grupo}</td>
+                <td>${item.linha}</td>
+                <td style="text-align: center; font-weight: bold; color: var(--green-primary);">${item.total}</td>
+            </tr>`;
         }).join('');
 
-        // Monta o Rodapé
-        const colspanAgrupado = modoColecao ? 3 : 2;
+        // Monta o Rodapé (colspan 3 para cobrir Coleção, Grupo e Linha)
         tfootResumo.innerHTML = `
             <tr>
-                <td colspan="${colspanAgrupado}" style="text-align: right; padding: 12px; font-size: 1.1em;">TOTAL GERAL:</td>
+                <td colspan="3" style="text-align: right; padding: 12px; font-size: 1.1em;">TOTAL GERAL:</td>
                 <td style="text-align: center; padding: 12px; font-size: 1.2em;">${somaTotal}</td>
             </tr>
         `;
@@ -125,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 3. CHECKBOXES
+    // 3. CHECKBOXES DO KANBAN
     // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
