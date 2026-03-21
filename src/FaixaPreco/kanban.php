@@ -54,7 +54,16 @@ require_once __DIR__ . '/../../db.php';
             cursor: pointer; font-size: 0.9em; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center;
         }
-        .select-box::after { content: '▼'; font-size: 0.7em; margin-left: 10px; }
+        
+        /* NOVA CLASSE DA LEGENDA DO FILTRO (Cinza e Menor) */
+        .filter-subtitle {
+            color: #888;
+            font-size: 0.85em;
+            font-weight: normal;
+            margin-left: 6px;
+        }
+
+        .select-box::after { content: '▼'; font-size: 0.7em; margin-left: 10px; color: #888; }
         .checkboxes-list {
             display: none; position: absolute; background-color: var(--white);
             border: 1px solid #ccc; width: 100%; max-height: 250px;
@@ -83,37 +92,16 @@ require_once __DIR__ . '/../../db.php';
             background-color: var(--white); flex: 1; border: 2px solid var(--green-medium);
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
         }
-        
-        /* CABEÇALHO DA COLUNA ATUALIZADO (Menor padding, título menor, Mix maior) */
-        .kanban-header { 
-            background-color: var(--green-medium); 
-            color: var(--white); 
-            padding: 8px; /* Reduzido de 15px para afinar o frame */
-            text-align: center; 
-        }
-        .kanban-header h3 {
-            margin: 0 0 5px 0;
-            font-size: 1.1em; /* Título um pouco menor e mais discreto */
-        }
-        .range-info {
-            font-size: 0.85em;
-            opacity: 0.9;
-        }
-        .mix-info {
-            display: block;
-            margin-top: 5px;
-            font-size: 1.1em; /* Aumentado para dar destaque à quantidade */
-            font-weight: bold;
-            color: #E8F5E9; /* Um verde bem clarinho para contrastar */
-        }
-        /* Fim da atualização do cabeçalho */
-
+        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; }
+        .kanban-header h3 { margin: 0 0 5px 0; font-size: 1.1em; }
+        .range-info { font-size: 0.85em; opacity: 0.9; }
+        .mix-info { display: block; margin-top: 5px; font-size: 1.1em; font-weight: bold; color: #E8F5E9; }
         .kanban-cards {
             padding: 15px; overflow-y: auto; flex-grow: 1; background-color: #fafafa;
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
         }
         
-        /* CARD ATUALIZADO */
+        /* CARD */
         .card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
             padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
@@ -123,15 +111,8 @@ require_once __DIR__ . '/../../db.php';
         .card .info-container { display: flex; flex-direction: column; gap: 2px; }
         .card .ref-code { font-size: 0.9em; color: #222; font-weight: bold; display: block; }
         .card .description { font-size: 0.78em; color: #757575; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        
-        /* Área de Preços e Markup */
-        .card .price-container { 
-            display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; 
-            padding-top: 6px; margin-top: 4px; 
-        }
-        .card .b2b-row { 
-            display: flex; justify-content: space-between; align-items: baseline; 
-        }
+        .card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 6px; margin-top: 4px; }
+        .card .b2b-row { display: flex; justify-content: space-between; align-items: baseline; }
         .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
         .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
         .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
@@ -158,17 +139,23 @@ require_once __DIR__ . '/../../db.php';
             </select>
 
             <div class="multiselect-container">
-                <div class="select-box" onclick="toggleDropdown('list-colecao')">COLEÇÕES</div>
+                <div class="select-box" onclick="toggleDropdown('list-colecao')">
+                    <div>COLEÇÕES <span class="filter-subtitle" id="sub-colecao"></span></div>
+                </div>
                 <div class="checkboxes-list" id="list-colecao"></div>
             </div>
 
             <div class="multiselect-container">
-                <div class="select-box" onclick="toggleDropdown('list-linha')">LINHAS</div>
+                <div class="select-box" onclick="toggleDropdown('list-linha')">
+                    <div>LINHAS <span class="filter-subtitle" id="sub-linha"></span></div>
+                </div>
                 <div class="checkboxes-list" id="list-linha"></div>
             </div>
 
             <div class="multiselect-container">
-                <div class="select-box" onclick="toggleDropdown('list-grupo')">GRUPOS</div>
+                <div class="select-box" onclick="toggleDropdown('list-grupo')">
+                    <div>GRUPOS <span class="filter-subtitle" id="sub-grupo"></span></div>
+                </div>
                 <div class="checkboxes-list" id="list-grupo"></div>
             </div>
 

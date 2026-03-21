@@ -50,11 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         colecao: p.colecao || 'GERAL',
                         linha: p.linha || 'GERAL',
                         grupo: p.grupo || 'GERAL',
-                        
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco),
                         precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, 
-
                         eMax: parseFloat(p.faixa_entrada_max) || 0, 
                         iMax: parseFloat(p.faixa_inter_max) || 0
                     };
@@ -96,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isChecked = e.target.checked;
                 chkItems.forEach(chk => {
                     const label = chk.closest('label');
-                    // Regra de BI: O Selecionar Tudo só afeta quem está visível no filtro
                     if (label.style.display !== 'none') {
                         chk.checked = isChecked;
                     }
@@ -106,7 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             chkItems.forEach(chk => {
                 chk.addEventListener('change', () => {
-                    // Verifica se todos os VISÍVEIS estão marcados
                     const visiveis = Array.from(chkItems).filter(c => c.closest('label').style.display !== 'none');
                     const todosMarcados = visiveis.every(c => c.checked);
                     chkAll.checked = todosMarcados;
@@ -162,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSelGrupo.addEventListener('change', verificarSelecaoModal);
 
     // ==========================================
-    // 4. LÓGICA MESTRA DO KANBAN E FILTRO CRUZADO
+    // 4. LÓGICA MESTRA DO KANBAN
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -170,11 +166,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const fLinhasHeader = getChecked(listLinha);
         const fGruposHeader = getChecked(listGrupo);
 
+        // --- ATUALIZA A LEGENDA DOS FILTROS (Múltiplo ou Único) ---
+        const atualizarLegendaFiltro = (idSpan, arraySelecionados) => {
+            const spanElement = document.getElementById(idSpan);
+            if (arraySelecionados.length === 1) {
+                spanElement.innerText = `(${arraySelecionados[0]})`;
+            } else if (arraySelecionados.length > 1) {
+                spanElement.innerText = `(Vários itens)`;
+            } else {
+                spanElement.innerText = `(Nenhum)`;
+            }
+        };
+
+        atualizarLegendaFiltro('sub-colecao', fColecoes);
+        atualizarLegendaFiltro('sub-linha', fLinhasHeader);
+        atualizarLegendaFiltro('sub-grupo', fGruposHeader);
+        // --------------------------------------------------------
+
         const fLinhaModal = modalSelLinha.value;
         const fGrupoModal = modalSelGrupo.value;
 
-        // --- INÍCIO: INTELIGÊNCIA DE FILTRO CRUZADO (BI) ---
-        // Calcula as opções disponíveis cruzando apenas os "outros" menus
+        // Filtro Cruzado (BI)
         const validColecoes = new Set(produtosBase.filter(p => fLinhasHeader.includes(p.linha) && fGruposHeader.includes(p.grupo)).map(p => p.colecao));
         const validLinhas = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fGruposHeader.includes(p.grupo)).map(p => p.linha));
         const validGrupos = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fLinhasHeader.includes(p.linha)).map(p => p.grupo));
@@ -193,8 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility(listColecao, validColecoes);
         updateVisibility(listLinha, validLinhas);
         updateVisibility(listGrupo, validGrupos);
-        // --- FIM: INTELIGÊNCIA DE FILTRO CRUZADO ---
 
+        // Distribuição dos Cards
         const filtrados = produtosBase.filter(p => {
             const matchColecao = fColecoes.includes(p.colecao);
             const matchLinha = (!fLinhaModal || fLinhaModal === "TODAS") ? fLinhasHeader.includes(p.linha) : (p.linha === fLinhaModal);
@@ -275,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 5. CONTROLES DE INTERFACE E SINCRONIA
+    // 5. CONTROLES DE INTERFACE
     // ==========================================
     document.getElementById('btn-config').onclick = () => {
         const plano = selPlano.value;
@@ -308,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 6. SALVAR FAIXAS NO BANCO DE DADOS
+    // 6. SALVAR FAIXAS NO BANCO
     // ==========================================
     btnSave.onclick = () => {
         const planoAtual = selPlano.value;
