@@ -1,3 +1,11 @@
+<?php
+session_start();
+// Se o usuário não estiver logado, redireciona para a tela de login (index.php)
+if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
+    header("Location: index.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -50,7 +58,7 @@
             color: var(--green-primary);
             outline: none;
             font-size: 1em; 
-            text-transform: uppercase; /* Garante que o texto fique em maiúsculo */
+            text-transform: uppercase;
         }
 
         .global-indicator {
@@ -85,7 +93,8 @@
             display: flex;
             gap: 20px; 
             padding: 20px; 
-            height: calc(100vh - 110px);
+            /* Ajustado levemente para dar espaço ao rodapé */
+            height: calc(100vh - 140px);
         }
 
         .kanban-column {
@@ -184,6 +193,20 @@
         input[type="number"] { width: 80px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; } 
         
         .modal-footer { margin-top: 20px; text-align: right; }
+
+        /* Rodapé Discreto */
+        .footer {
+            text-align: center;
+            font-size: 0.85em;
+            color: #666;
+            padding: 8px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: var(--green-light);
+            border-top: 1px solid #ccc;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -265,6 +288,10 @@
             </div>
             <div class="kanban-cards" id="cards-premium"></div>
         </div>
+    </div>
+
+    <div class="footer">
+        Sincronizado às: <span id="last-sync">Aguardando dados...</span>
     </div>
 
     <script src="script.js"></script>

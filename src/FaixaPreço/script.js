@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    let produtos = []; // Agora começa vazio e será preenchido pelo JSON
+    let produtos = []; 
+    let jsonAnterior = ""; 
 
     // --- CONTROLE DO MODAL ---
     const modal = document.getElementById('configModal');
@@ -21,10 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    // Função para limpar o texto de moeda que vem do Excel e transformar em Float
     const converterPrecoExcelParaNumero = (precoString) => {
         if (!precoString) return 0;
-        // Remove "R$ ", espaços, troca ponto (milhar) por nada, e vírgula por ponto decimal
         let limpo = precoString.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
         return parseFloat(limpo) || 0;
     };
@@ -90,34 +89,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- BUSCAR DADOS DO PHP (JSON) ---
     const carregarDadosDoServidor = () => {
-        // Tenta ler o arquivo gerado pelo PHP
-        fetch('dados.json')
+        fetch('dados.json?t=' + new Date().getTime())
             .then(response => {
                 if (!response.ok) throw new Error("Ainda não há dados sincronizados.");
-                return response.json();
+                return response.text(); 
             })
-            .then(data => {
-                // Mapeia e converte o preço que veio do Excel como texto para número
-                produtos = data.map(item => ({
-                    ref: item.ref,
-                    colecao: item.colecao,
-                    linha: item.linha,
-                    grupo: item.grupo,
-                    preco: converterPrecoExcelParaNumero(item.preco)
-                }));
-                
-                // Popula os filtros dinamicamente (opcional, mas muito útil)
-                preencherFiltrosUnicos(produtos);
+            .then(textData => {
+                if (textData !== jsonAnterior) {
+                    jsonAnterior = textData; 
+                    
+                    const data = JSON.parse(textData); 
+                    
+                    produtos = data.map(item => ({
+                        ref: item.ref,
+                        colecao: item.colecao,
+                        linha: item.linha,
+                        grupo: item.grupo,
+                        preco: converterPrecoExcelParaNumero(item.preco)
+                    }));
+                    
+                    preencherFiltrosUnicos(produtos);
+                    atualizarKanban();
 
-                // Atualiza a tela
-                atualizarKanban();
+                    // --- ATUALIZA A HORA NO RODAPÉ ---
+                    const agora = new Date();
+                    const horaFormatada = agora.toLocaleTimeString('pt-BR'); 
+                    document.getElementById('last-sync').innerText = horaFormatada;
+                }
             })
             .catch(error => {
                 console.log(error.message);
             });
     };
 
-    // Função bônus: preenche os dropdowns automaticamente com base no Excel!
+    // Função que preenche os dropdowns
     const preencherFiltrosUnicos = (listaProdutos) => {
         const colecoes = [...new Set(listaProdutos.map(p => p.colecao))].filter(Boolean);
         const linhas = [...new Set(listaProdutos.map(p => p.linha))].filter(Boolean);
@@ -127,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const selLinha = document.getElementById('filter-linha');
         const selGrupo = document.getElementById('filter-grupo');
 
-        // Mantém a primeira opção e adiciona o resto
         selColecao.innerHTML = '<option value="">COLEÇÃO</option>' + colecoes.map(c => `<option value="${c}">${c}</option>`).join('');
         selLinha.innerHTML = '<option value="">LINHA</option>' + linhas.map(l => `<option value="${l}">${l}</option>`).join('');
         selGrupo.innerHTML = '<option value="">GRUPO</option>' + grupos.map(g => `<option value="${g}">${g}</option>`).join('');
@@ -139,6 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = 'none';
     });
 
-    // Inicia o carregamento assim que a página abre
     carregarDadosDoServidor();
+    setInterval(carregarDadosDoServidor, 5000);
 });
