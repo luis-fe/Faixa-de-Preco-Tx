@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => {
                 produtosBase = data.map(p => {
-                    // Limpa apenas campos de moeda com padrão BR (Preços)
                     const limpaMoeda = (val) => {
                         if (!val || String(val).trim() === '') return 0;
                         let limpo = String(val).replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
@@ -54,8 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco),
                         precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
-                        
-                        // CORREÇÃO: O banco já manda o Markup pronto (ex: "2.50"). O parseFloat lê direto!
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, 
 
                         eMax: parseFloat(p.faixa_entrada_max) || 0, 
@@ -96,13 +93,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const chkItems = container.querySelectorAll('.item-checkbox');
 
             chkAll.addEventListener('change', (e) => {
-                chkItems.forEach(chk => chk.checked = e.target.checked);
+                const isChecked = e.target.checked;
+                chkItems.forEach(chk => {
+                    const label = chk.closest('label');
+                    // Regra de BI: O Selecionar Tudo só afeta quem está visível no filtro
+                    if (label.style.display !== 'none') {
+                        chk.checked = isChecked;
+                    }
+                });
                 atualizarKanban();
             });
 
             chkItems.forEach(chk => {
                 chk.addEventListener('change', () => {
-                    const todosMarcados = Array.from(chkItems).every(c => c.checked);
+                    // Verifica se todos os VISÍVEIS estão marcados
+                    const visiveis = Array.from(chkItems).filter(c => c.closest('label').style.display !== 'none');
+                    const todosMarcados = visiveis.every(c => c.checked);
                     chkAll.checked = todosMarcados;
                     atualizarKanban();
                 });
@@ -156,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSelGrupo.addEventListener('change', verificarSelecaoModal);
 
     // ==========================================
-    // 4. LÓGICA MESTRA DO KANBAN E CARDS
+    // 4. LÓGICA MESTRA DO KANBAN E FILTRO CRUZADO
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -166,6 +172,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fLinhaModal = modalSelLinha.value;
         const fGrupoModal = modalSelGrupo.value;
+
+        // --- INÍCIO: INTELIGÊNCIA DE FILTRO CRUZADO (BI) ---
+        // Calcula as opções disponíveis cruzando apenas os "outros" menus
+        const validColecoes = new Set(produtosBase.filter(p => fLinhasHeader.includes(p.linha) && fGruposHeader.includes(p.grupo)).map(p => p.colecao));
+        const validLinhas = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fGruposHeader.includes(p.grupo)).map(p => p.linha));
+        const validGrupos = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fLinhasHeader.includes(p.linha)).map(p => p.grupo));
+
+        const updateVisibility = (container, validSet) => {
+            container.querySelectorAll('.item-checkbox').forEach(chk => {
+                const label = chk.closest('label');
+                if (validSet.has(chk.value)) {
+                    label.style.display = 'block';
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+        };
+
+        updateVisibility(listColecao, validColecoes);
+        updateVisibility(listLinha, validLinhas);
+        updateVisibility(listGrupo, validGrupos);
+        // --- FIM: INTELIGÊNCIA DE FILTRO CRUZADO ---
 
         const filtrados = produtosBase.filter(p => {
             const matchColecao = fColecoes.includes(p.colecao);
@@ -224,7 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-entrada').innerText = cont.e;
         document.getElementById('mix-inter').innerText = cont.i;
         document.getElementById('mix-premium').innerText = cont.p;
-        document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;        
+        document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
+        
         const infoEntrada = document.getElementById('info-range-entrada');
         const infoInter = document.getElementById('info-range-inter');
         const infoPremium = document.getElementById('info-range-premium');
