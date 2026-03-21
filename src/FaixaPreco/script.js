@@ -166,31 +166,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const fLinhasHeader = getChecked(listLinha);
         const fGruposHeader = getChecked(listGrupo);
 
-        // --- ATUALIZA A LEGENDA DOS FILTROS (Múltiplo ou Único) ---
-        const atualizarLegendaFiltro = (idSpan, arraySelecionados) => {
+        // Filtro Cruzado (BI): Descobre o que é válido para ser exibido
+        const validColecoes = new Set(produtosBase.filter(p => fLinhasHeader.includes(p.linha) && fGruposHeader.includes(p.grupo)).map(p => p.colecao));
+        const validLinhas = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fGruposHeader.includes(p.grupo)).map(p => p.linha));
+        const validGrupos = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fLinhasHeader.includes(p.linha)).map(p => p.grupo));
+
+        // --- A MÁGICA DOS ITENS EFETIVOS ---
+        // Cruza os marcados com os visíveis para saber a verdade absoluta
+        const effectiveColecoes = fColecoes.filter(x => validColecoes.has(x));
+        const effectiveLinhas = fLinhasHeader.filter(x => validLinhas.has(x));
+        const effectiveGrupos = fGruposHeader.filter(x => validGrupos.has(x));
+
+        // Atualiza a legenda dos botões
+        const atualizarLegendaFiltro = (idSpan, arrayEfetivo) => {
             const spanElement = document.getElementById(idSpan);
-            if (arraySelecionados.length === 1) {
-                spanElement.innerText = `(${arraySelecionados[0]})`;
-            } else if (arraySelecionados.length > 1) {
+            if (arrayEfetivo.length === 1) {
+                spanElement.innerText = `(${arrayEfetivo[0]})`;
+            } else if (arrayEfetivo.length > 1) {
                 spanElement.innerText = `(Vários itens)`;
             } else {
                 spanElement.innerText = `(Nenhum)`;
             }
         };
 
-        atualizarLegendaFiltro('sub-colecao', fColecoes);
-        atualizarLegendaFiltro('sub-linha', fLinhasHeader);
-        atualizarLegendaFiltro('sub-grupo', fGruposHeader);
-        // --------------------------------------------------------
+        atualizarLegendaFiltro('sub-colecao', effectiveColecoes);
+        atualizarLegendaFiltro('sub-linha', effectiveLinhas);
+        atualizarLegendaFiltro('sub-grupo', effectiveGrupos);
 
-        const fLinhaModal = modalSelLinha.value;
-        const fGrupoModal = modalSelGrupo.value;
-
-        // Filtro Cruzado (BI)
-        const validColecoes = new Set(produtosBase.filter(p => fLinhasHeader.includes(p.linha) && fGruposHeader.includes(p.grupo)).map(p => p.colecao));
-        const validLinhas = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fGruposHeader.includes(p.grupo)).map(p => p.linha));
-        const validGrupos = new Set(produtosBase.filter(p => fColecoes.includes(p.colecao) && fLinhasHeader.includes(p.linha)).map(p => p.grupo));
-
+        // Esconde o que não pertence ao cruzamento no menu suspenso
         const updateVisibility = (container, validSet) => {
             container.querySelectorAll('.item-checkbox').forEach(chk => {
                 const label = chk.closest('label');
@@ -205,6 +208,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility(listColecao, validColecoes);
         updateVisibility(listLinha, validLinhas);
         updateVisibility(listGrupo, validGrupos);
+
+        const fLinhaModal = modalSelLinha.value;
+        const fGrupoModal = modalSelGrupo.value;
 
         // Distribuição dos Cards
         const filtrados = produtosBase.filter(p => {
@@ -270,7 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const infoInter = document.getElementById('info-range-inter');
         const infoPremium = document.getElementById('info-range-premium');
 
-        if (fLinhasHeader.length === 1 && fGruposHeader.length === 1 && filtrados.length > 0) {
+        // REGRA AJUSTADA: Aparece se tiver 1 Linha Efetiva OU 1 Grupo Efetivo
+        if ((effectiveLinhas.length === 1 || effectiveGrupos.length === 1) && filtrados.length > 0) {
             const amostra = filtrados[0]; 
             infoEntrada.innerText = `Até R$ ${amostra.eMax.toFixed(2)}`;
             infoInter.innerText = `R$ ${(amostra.eMax + 0.01).toFixed(2)} - R$ ${amostra.iMax.toFixed(2)}`;
@@ -294,15 +301,20 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTitle.innerText = plano ? "Configurando: " + plano : "⚠️ Selecione o plano primeiro";
         modalTitle.style.color = plano ? "var(--green-primary)" : "red";
         
-        const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-        const fLinhasAtuais = getChecked(listLinha);
-        const fGruposAtuais = getChecked(listGrupo);
+        // Pega apenas os marcados que estão visíveis na tela
+        const getEffectiveChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked'))
+            .filter(c => c.closest('label').style.display !== 'none')
+            .map(c => c.value);
+            
+        const eLinhas = getEffectiveChecked(listLinha);
+        const eGrupos = getEffectiveChecked(listGrupo);
 
         modalSelLinha.value = "";
         modalSelGrupo.value = "";
 
-        if (fLinhasAtuais.length === 1) modalSelLinha.value = fLinhasAtuais[0];
-        if (fGruposAtuais.length === 1) modalSelGrupo.value = fGruposAtuais[0];
+        // Se o usuário só estiver vendo 1 efetivo, pré-preenche o modal pra ele!
+        if (eLinhas.length === 1) modalSelLinha.value = eLinhas[0];
+        if (eGrupos.length === 1) modalSelGrupo.value = eGrupos[0];
 
         verificarSelecaoModal();
         modal.style.display = 'block';
