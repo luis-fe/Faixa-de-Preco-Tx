@@ -45,8 +45,9 @@ try {
             grupo varchar,
             "valorEntradaB2B" varchar ,
             "valorintermediarioB2B" varchar ,
-            "valorPremium" varchar
-);
+            "valorPremium" varchar,
+            UNIQUE(plano, linha, grupo) 
+        );
     ';
     $pdo->exec($sql);
 
