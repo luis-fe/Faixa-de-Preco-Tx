@@ -172,43 +172,50 @@ require_once __DIR__ . '/../../db.php';
     <div id="configModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" id="close-modal">&times;</span>
-            <h2 id="modal-plano-title" style="margin-bottom: 5px;">Selecione um plano</h2>
-            <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 15px;">
+            
+            <h2 id="modal-plano-title" style="margin: 0 0 5px 0; font-size: 1.4em;">Selecione um plano</h2>
+            <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
 
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <div style="flex: 1;">
-                    <label style="font-size: 0.8em; font-weight: bold; display: block; margin-bottom: 5px;">LINHA</label>
+                    <label style="font-size: 0.75em; font-weight: bold; display: block; margin-bottom: 5px;">LINHA</label>
                     <select id="modal-filter-linha" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="">TODAS</option>
-                    </select>
+                        </select>
                 </div>
                 <div style="flex: 1;">
-                    <label style="font-size: 0.8em; font-weight: bold; display: block; margin-bottom: 5px;">GRUPO</label>
+                    <label style="font-size: 0.75em; font-weight: bold; display: block; margin-bottom: 5px;">GRUPO</label>
                     <select id="modal-filter-grupo" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="">TODOS</option>
-                    </select>
+                        </select>
                 </div>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr style="height: 45px;">
-                    <td><strong>Entrada</strong></td>
-                    <td style="text-align: right;">R$ <input type="number" id="entrada-min" value="0" style="width: 70px; padding: 5px;"> à</td>
-                    <td>R$ <input type="number" id="entrada-max" value="99.99" style="width: 70px; padding: 5px;"></td>
-                </tr>
-                <tr style="height: 45px;">
-                    <td><strong>Intermediário</strong></td>
-                    <td style="text-align: right;">R$ <input type="number" id="inter-min" value="100.00" style="width: 70px; padding: 5px;"> à</td>
-                    <td>R$ <input type="number" id="inter-max" value="299.99" style="width: 70px; padding: 5px;"></td>
-                </tr>
-                <tr style="height: 45px;">
-                    <td colspan="2"><strong>Premium</strong></td>
-                    <td style="color: var(--green-primary); font-weight: bold;">Acima de R$ <span id="premium-min-label">299.99</span></td>
-                </tr>
-            </table>
+            <div id="msg-selecione-filtros" style="text-align: center; color: #757575; padding: 20px 0; font-style: italic;">
+                ⚠️ Selecione uma Linha e um Grupo acima para configurar as faixas.
+            </div>
 
-            <div class="modal-footer" style="margin-top: 20px; text-align: right;">
-                <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%; padding: 10px;">Salvar e Atualizar Kanban</button>
+            <div id="config-faixas-area" style="display: none;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <tr style="height: 40px;">
+                        <td><strong>Entrada</strong></td>
+                        <td style="text-align: right;">R$ <input type="number" id="entrada-min" value="0" style="width: 65px; padding: 4px;"> à</td>
+                        <td>R$ <input type="number" id="entrada-max" value="99.99" style="width: 65px; padding: 4px;"></td>
+                    </tr>
+                    <tr style="height: 40px;">
+                        <td><strong>Intermediário</strong></td>
+                        <td style="text-align: right;">R$ <input type="number" id="inter-min" value="100.00" style="width: 65px; padding: 4px;"> à</td>
+                        <td>R$ <input type="number" id="inter-max" value="299.99" style="width: 65px; padding: 4px;"></td>
+                    </tr>
+                    <tr style="height: 40px;">
+                        <td colspan="2"><strong>Premium</strong></td>
+                        <td style="color: var(--green-primary); font-weight: bold;">
+                            Acima de R$ <span id="premium-min-label">299.99</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="modal-footer" style="margin-top: 20px; text-align: right;">
+                    <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%; border: none; padding: 12px;">Salvar e Atualizar Kanban</button>
+                </div>
             </div>
         </div>
     </div>
