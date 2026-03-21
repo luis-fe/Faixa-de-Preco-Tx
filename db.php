@@ -39,7 +39,7 @@ try {
             plano VARCHAR,
             "precoB2B" VARCHAR
         );
-        create table "planoFaixaPrecoLinhaGrupo"(
+        create table IF NOT EXISTS "planoFaixaPrecoLinhaGrupo"(
             plano varchar,
             linha varchar,
             grupo varchar,
