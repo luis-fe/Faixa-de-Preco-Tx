@@ -1,27 +1,28 @@
 <?php
-// Tenta pegar as variáveis, mas limpa qualquer aspa ou espaço extra
-$host = trim(getenv('PGHOST'));
-$port = trim(getenv('PGPORT')) ?: '5432';
-$dbname = trim(getenv('PGDATABASE'));
-$user = trim(getenv('PGUSER'));
-$pass = trim(getenv('PGPASSWORD'));
+// Tenta buscar de todas as formas possíveis (getenv, $_ENV e $_SERVER)
+$host = getenv('PGHOST') ?: ($_ENV['PGHOST'] ?? ($_SERVER['PGHOST'] ?? null));
+$port = getenv('PGPORT') ?: ($_ENV['PGPORT'] ?? ($_SERVER['PGPORT'] ?? '5432'));
+$dbname = getenv('PGDATABASE') ?: ($_ENV['PGDATABASE'] ?? ($_SERVER['PGDATABASE'] ?? null));
+$user = getenv('PGUSER') ?: ($_ENV['PGUSER'] ?? ($_SERVER['PGUSER'] ?? null));
+$pass = getenv('PGPASSWORD') ?: ($_ENV['PGPASSWORD'] ?? ($_SERVER['PGPASSWORD'] ?? null));
 
-// Se por algum motivo o Railway não entregou as variáveis, 
-// o script vai parar aqui com um aviso claro.
+// REMOVA espaços ou aspas que o Railway possa ter colocado por erro
+$host = trim($host, " '\"");
+$dbname = trim($dbname, " '\"");
+$user = trim($user, " '\"");
+$pass = trim($pass, " '\"");
+
 if (!$host || !$dbname) {
-    die("Erro: Variáveis de ambiente do banco não encontradas no Railway.");
+    // Vamos exibir o que o PHP ESTÁ vendo para podermos debugar
+    die("Erro: Variáveis não encontradas. Verificamos PGHOST e PGDATABASE. Verifique se o serviço do Banco está 'Linkado' ao serviço do PHP no Railway.");
 }
 
 try {
-    // Montamos a DSN de forma ultra limpa
-    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;user=$user;password=$pass";
-    
-    // Criamos a conexão passando apenas a DSN
-    $pdo = new PDO($dsn);
-    
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Montagem limpa
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+    $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-    // SQL de criação das tabelas
+    // SQL de criação (mantendo o que já tínhamos)
     $sql = '
         CREATE TABLE IF NOT EXISTS "produto" (
             referencia VARCHAR PRIMARY KEY,
@@ -30,21 +31,17 @@ try {
             linha VARCHAR,
             grupo VARCHAR
         );
-
         CREATE TABLE IF NOT EXISTS "Plano" (
             plano VARCHAR PRIMARY KEY
         );
-
         CREATE TABLE IF NOT EXISTS "produto_plano" (
             referencia VARCHAR,
             plano VARCHAR,
             "precoB2B" VARCHAR
         );
     ';
-
     $pdo->exec($sql);
 
 } catch (PDOException $e) {
-    // Isso vai nos mostrar exatamente onde o texto está quebrando
     die("Erro de Conexão: " . $e->getMessage());
 }
