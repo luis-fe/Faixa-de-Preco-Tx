@@ -39,6 +39,14 @@ try {
             plano VARCHAR,
             "precoB2B" VARCHAR
         );
+        create table "planoFaixaPrecoLinhaGrupo"(
+            plano varchar,
+            linha varchar,
+            grupo varchar,
+            "valorEntradaB2B" varchar ,
+            "valorintermediarioB2B" varchar ,
+            "valorPremium" varchar
+);
     ';
     $pdo->exec($sql);
 

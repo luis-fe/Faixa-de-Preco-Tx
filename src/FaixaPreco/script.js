@@ -1,79 +1,80 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let produtosBase = []; // Armazena o que vem do Banco de Dados
+    let produtosBase = []; 
 
     const selPlano = document.getElementById('filter-plano');
-    const lists = {
-        colecao: document.getElementById('list-colecao'),
-        linha: document.getElementById('list-linha'),
-        grupo: document.getElementById('list-grupo')
-    };
+    const modal = document.getElementById('configModal');
+    const modalTitle = document.getElementById('modal-plano-title');
+    const modalSelLinha = document.getElementById('modal-filter-linha');
+    const modalSelGrupo = document.getElementById('modal-filter-grupo');
+    const interMaxInput = document.getElementById('inter-max');
+    const premiumLabel = document.getElementById('premium-min-label');
 
-    // --- BUSCAR DADOS DO POSTGRES ---
+    // --- BUSCAR DADOS ---
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
-        if (!plano) {
-            limparTudo();
-            return;
-        }
+        if (!plano) return;
 
-        // Busca os produtos desse plano no banco
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
             .then(res => res.json())
             .then(data => {
                 produtosBase = data.map(p => ({
                     ref: p.referencia,
                     desc: p.descricao,
-                    colecao: p.colecao || 'OUTROS',
-                    linha: p.linha || 'OUTROS',
-                    grupo: p.grupo || 'OUTROS',
+                    linha: p.linha || 'GERAL',
+                    grupo: p.grupo || 'GERAL',
                     preco: parseFloat(p.precoB2B) || 0
                 }));
-
-                gerarCheckboxes(); // Cria as opções baseadas no Plano selecionado
                 atualizarKanban();
                 document.getElementById('last-sync').innerText = new Date().toLocaleTimeString();
-            })
-            .catch(err => console.error("Erro ao buscar dados:", err));
+            });
     });
 
-    // --- GERAR CHECKBOXES DINAMICAMENTE ---
-    function gerarCheckboxes() {
-        const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
-
-        const preencher = (key, data) => {
-            lists[key].innerHTML = data.map(val => `
-                <label><input type="checkbox" value="${val}" data-type="${key}" checked> ${val}</label>
-            `).join('');
+    // --- CONTROLE DO MODAL ---
+    document.getElementById('btn-config').onclick = () => {
+        const plano = selPlano.value;
+        if (!plano) {
+            modalTitle.innerText = "⚠️ Selecione o plano primeiro";
+            modalTitle.style.color = "red";
+        } else {
+            modalTitle.innerText = "Plano: " + plano;
+            modalTitle.style.color = "var(--green-primary)";
             
-            // Adiciona evento em cada checkbox novo
-            lists[key].querySelectorAll('input').forEach(chk => {
-                chk.addEventListener('change', atualizarKanban);
-            });
-        };
+            // Popula selects do modal
+            const uniqueLinhas = [...new Set(produtosBase.map(p => p.linha))].sort();
+            const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
+            modalSelLinha.innerHTML = '<option value="">TODAS AS LINHAS</option>' + uniqueLinhas.map(l => `<option value="${l}">${l}</option>`).join('');
+            modalSelGrupo.innerHTML = '<option value="">TODOS OS GRUPOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
+        }
+        modal.style.display = 'block';
+    };
 
-        preencher('colecao', unique('colecao'));
-        preencher('linha', unique('linha'));
-        preencher('grupo', unique('grupo'));
-    }
+    document.getElementById('close-modal').onclick = () => modal.style.display = 'none';
 
-    // --- LÓGICA DO KANBAN ---
+    // Atualiza Premium em tempo real
+    interMaxInput.addEventListener('input', () => {
+        premiumLabel.innerText = interMaxInput.value;
+    });
+
+    // --- FUNÇÃO PRINCIPAL ---
     function atualizarKanban() {
-        const getChecked = (key) => Array.from(lists[key].querySelectorAll('input:checked')).map(c => c.value);
-        
-        const fCol = getChecked('colecao');
-        const fLin = getChecked('linha');
-        const fGru = getChecked('grupo');
+        const eMin = parseFloat(document.getElementById('entrada-min').value) || 0;
+        const eMax = parseFloat(document.getElementById('entrada-max').value) || 0;
+        const iMin = parseFloat(document.getElementById('inter-min').value) || 0;
+        const iMax = parseFloat(document.getElementById('inter-max').value) || 0;
 
-        // Faixas de Preço
-        const eMax = parseFloat(document.getElementById('entrada-max').value) || 99.99;
-        const iMax = parseFloat(document.getElementById('inter-max').value) || 299.99;
+        // Filtros do Modal
+        const fLinha = modalSelLinha.value;
+        const fGrupo = modalSelGrupo.value;
 
-        // Filtragem
-        const filtrados = produtosBase.filter(p => 
-            fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo)
-        );
+        // Atualiza Labels
+        document.getElementById('info-range-entrada').innerText = `R$ ${eMin} - R$ ${eMax}`;
+        document.getElementById('info-range-inter').innerText = `R$ ${iMin} - R$ ${iMax}`;
+        document.getElementById('info-range-premium').innerText = `Acima de R$ ${iMax}`;
 
-        // Renderizar Cards
+        const filtrados = produtosBase.filter(p => {
+            return (!fLinha || p.linha === fLinha) && (!fGrupo || p.grupo === fGrupo);
+        });
+
         const cols = {
             entrada: document.getElementById('cards-entrada'),
             inter: document.getElementById('cards-inter'),
@@ -86,19 +87,14 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
-            
-            // Criamos uma estrutura separada para REF e DESCRIÇÃO
             card.innerHTML = `
                 <div class="info-container">
                     <span class="ref-code">${p.ref}</span>
                     <span class="description">${p.desc}</span>
                 </div>
-                <span class="price">
-                    ${p.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </span>
+                <span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
             `;
 
-            // Distribuição nas colunas
             if (p.preco <= eMax) {
                 cols.entrada.appendChild(card); cont.e++;
             } else if (p.preco <= iMax) {
@@ -114,16 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
     }
 
-    function limparTudo() {
-        produtosBase = [];
-        Object.values(lists).forEach(l => l.innerHTML = '');
-        atualizarKanban();
-    }
-
-    // Modal e Save
-    document.getElementById('btn-config').onclick = () => document.getElementById('configModal').style.display = 'block';
     document.getElementById('btn-save-ranges').onclick = () => {
         atualizarKanban();
-        document.getElementById('configModal').style.display = 'none';
+        modal.style.display = 'none';
     };
 });

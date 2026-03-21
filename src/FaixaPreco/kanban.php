@@ -174,7 +174,7 @@ require_once __DIR__ . '/../../db.php';
             margin-top: 4px;
             white-space: nowrap; /* Evita que o R$ quebre linha sozinho */
         }
-        
+
         /* Modal e Outros */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
         .modal-content { background: #fff; width: 450px; margin: 10% auto; padding: 20px; border-radius: 8px; border: 3px solid var(--green-primary); }
@@ -244,12 +244,48 @@ require_once __DIR__ . '/../../db.php';
 
     <div id="configModal" class="modal">
         <div class="modal-content">
-            <h3>Faixas de Preço</h3>
-            <table style="width:100%">
-                <tr><td>Entrada</td><td>Até</td><td><input type="number" id="entrada-max" value="99.99"></td></tr>
-                <tr><td>Inter</td><td>Até</td><td><input type="number" id="inter-max" value="299.99"></td></tr>
+            <span class="close-modal" id="close-modal">&times;</span>
+            
+            <h2 id="modal-plano-title" style="margin-bottom: 5px;">Selecione um plano</h2>
+            <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 15px;">
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8em; font-weight: bold; display: block; margin-bottom: 5px;">LINHA</label>
+                    <select id="modal-filter-linha" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="">TODAS</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8em; font-weight: bold; display: block; margin-bottom: 5px;">GRUPO</label>
+                    <select id="modal-filter-grupo" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="">TODOS</option>
+                    </select>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="height: 45px;">
+                    <td><strong>Entrada</strong></td>
+                    <td style="text-align: right;">R$ <input type="number" id="entrada-min" value="0" style="width: 70px; padding: 5px;"> à</td>
+                    <td>R$ <input type="number" id="entrada-max" value="99.99" style="width: 70px; padding: 5px;"></td>
+                </tr>
+                <tr style="height: 45px;">
+                    <td><strong>Intermediário</strong></td>
+                    <td style="text-align: right;">R$ <input type="number" id="inter-min" value="100.00" style="width: 70px; padding: 5px;"> à</td>
+                    <td>R$ <input type="number" id="inter-max" value="299.99" style="width: 70px; padding: 5px;"></td>
+                </tr>
+                <tr style="height: 45px;">
+                    <td colspan="2"><strong>Premium</strong></td>
+                    <td style="color: var(--green-primary); font-weight: bold;">
+                        Acima de R$ <span id="premium-min-label">299.99</span>
+                    </td>
+                </tr>
             </table>
-            <button class="btn" id="btn-save-ranges" style="margin-top:15px">Salvar</button>
+
+            <div class="modal-footer" style="margin-top: 20px; text-align: right;">
+                <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%;">Salvar e Atualizar Kanban</button>
+            </div>
         </div>
     </div>
 
