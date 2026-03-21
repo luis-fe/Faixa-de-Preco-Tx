@@ -5,7 +5,7 @@ header("Access-Control-Allow-Methods: POST");
 header("Content-Type: text/plain; charset=UTF-8");
 
 // 1. Chama a conexão com o banco de dados que criamos no db.php
-require_once 'db.php';
+require_once __DIR__ . '/../../db.php';
 
 // Recebe o pacote JSON enviado pelo Excel
 $json_recebido = file_get_contents('php://input');
