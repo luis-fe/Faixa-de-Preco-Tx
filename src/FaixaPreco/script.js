@@ -1,61 +1,79 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let produtosBase = []; // Dados vindos do SQL
+    let produtosBase = []; // Armazena o que vem do Banco de Dados
 
-    // Elementos dos Filtros
     const selPlano = document.getElementById('filter-plano');
-    const selColecao = document.getElementById('filter-colecao');
-    const selLinha = document.getElementById('filter-linha');
-    const selGrupo = document.getElementById('filter-grupo');
+    const lists = {
+        colecao: document.getElementById('list-colecao'),
+        linha: document.getElementById('list-linha'),
+        grupo: document.getElementById('list-grupo')
+    };
 
-    // --- BUSCAR DADOS QUANDO O PLANO MUDAR ---
+    // --- BUSCAR DADOS DO POSTGRES ---
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
-        if (!plano) return;
+        if (!plano) {
+            limparTudo();
+            return;
+        }
 
+        // Busca os produtos desse plano no banco
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
             .then(res => res.json())
             .then(data => {
-                // De/Para do Banco para o Objeto do JS
-                produtosBase = data.map(item => ({
-                    ref: item.referencia,
-                    colecao: item.colecao,
-                    linha: item.linha,
-                    grupo: item.grupo,
-                    preco: parseFloat(item.precoB2B) || 0
+                produtosBase = data.map(p => ({
+                    ref: p.referencia,
+                    desc: p.descricao,
+                    colecao: p.colecao || 'OUTROS',
+                    linha: p.linha || 'OUTROS',
+                    grupo: p.grupo || 'OUTROS',
+                    preco: parseFloat(p.precoB2B) || 0
                 }));
 
-                preencherFiltrosUnicos(produtosBase);
+                gerarCheckboxes(); // Cria as opções baseadas no Plano selecionado
                 atualizarKanban();
-                
                 document.getElementById('last-sync').innerText = new Date().toLocaleTimeString();
-            });
+            })
+            .catch(err => console.error("Erro ao buscar dados:", err));
     });
 
-    // --- LÓGICA DE FILTRAGEM ---
-    const atualizarKanban = () => {
-        // Pega valores múltiplos dos filtros
-        const getSelectValues = (select) => Array.from(select.selectedOptions).map(opt => opt.value).filter(v => v !== "");
-        
-        const fColecoes = getSelectValues(selColecao);
-        const fLinhas = getSelectValues(selLinha);
-        const fGrupos = getSelectValues(selGrupo);
+    // --- GERAR CHECKBOXES DINAMICAMENTE ---
+    function gerarCheckboxes() {
+        const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
 
-        // Faixas de Preço
-        const faixas = {
-            entrada: { min: parseFloat(document.getElementById('entrada-min').value) || 0, max: parseFloat(document.getElementById('entrada-max').value) || 0 },
-            inter: { min: parseFloat(document.getElementById('inter-min').value) || 0, max: parseFloat(document.getElementById('inter-max').value) || 0 },
-            premium: { min: parseFloat(document.getElementById('premium-min').value) || 0, max: Infinity }
+        const preencher = (key, data) => {
+            lists[key].innerHTML = data.map(val => `
+                <label><input type="checkbox" value="${val}" data-type="${key}" checked> ${val}</label>
+            `).join('');
+            
+            // Adiciona evento em cada checkbox novo
+            lists[key].querySelectorAll('input').forEach(chk => {
+                chk.addEventListener('change', atualizarKanban);
+            });
         };
 
-        // Filtra os produtos base
-        const produtosFiltrados = produtosBase.filter(p => {
-            const matchCol = fColecoes.length === 0 || fColecoes.includes(p.colecao);
-            const matchLin = fLinhas.length === 0 || fLinhas.includes(p.linha);
-            const matchGru = fGrupos.length === 0 || fGrupos.includes(p.grupo);
-            return matchCol && matchLin && matchGru;
-        });
+        preencher('colecao', unique('colecao'));
+        preencher('linha', unique('linha'));
+        preencher('grupo', unique('grupo'));
+    }
 
-        // Limpa Colunas
+    // --- LÓGICA DO KANBAN ---
+    function atualizarKanban() {
+        const getChecked = (key) => Array.from(lists[key].querySelectorAll('input:checked')).map(c => c.value);
+        
+        const fCol = getChecked('colecao');
+        const fLin = getChecked('linha');
+        const fGru = getChecked('grupo');
+
+        // Faixas de Preço
+        const eMax = parseFloat(document.getElementById('entrada-max').value) || 99.99;
+        const iMax = parseFloat(document.getElementById('inter-max').value) || 299.99;
+
+        // Filtragem
+        const filtrados = produtosBase.filter(p => 
+            fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo)
+        );
+
+        // Renderizar Cards
         const cols = {
             entrada: document.getElementById('cards-entrada'),
             inter: document.getElementById('cards-inter'),
@@ -63,52 +81,41 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         Object.values(cols).forEach(c => c.innerHTML = '');
 
-        let cont = { entrada: 0, inter: 0, premium: 0 };
+        let cont = { e: 0, i: 0, p: 0 };
 
-        produtosFiltrados.forEach(p => {
+        filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `<span class="ref">${p.ref}</span><span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>`;
+            card.innerHTML = `
+                <span class="ref">${p.ref} - ${p.desc}</span>
+                <span class="price">R$ ${p.preco.toFixed(2)}</span>
+            `;
 
-            if (p.preco >= faixas.entrada.min && p.preco <= faixas.entrada.max) {
-                cols.entrada.appendChild(card); cont.entrada++;
-            } else if (p.preco >= faixas.inter.min && p.preco <= faixas.inter.max) {
-                cols.inter.appendChild(card); cont.inter++;
-            } else if (p.preco >= faixas.premium.min) {
-                cols.premium.appendChild(card); cont.premium++;
+            if (p.preco <= eMax) {
+                cols.entrada.appendChild(card); cont.e++;
+            } else if (p.preco <= iMax) {
+                cols.inter.appendChild(card); cont.i++;
+            } else {
+                cols.premium.appendChild(card); cont.p++;
             }
         });
 
-        // Atualiza indicadores
-        document.getElementById('mix-entrada').innerText = cont.entrada;
-        document.getElementById('mix-inter').innerText = cont.inter;
-        document.getElementById('mix-premium').innerText = cont.premium;
-        document.getElementById('total-mix').innerText = cont.entrada + cont.inter + cont.premium;
-    };
+        document.getElementById('mix-entrada').innerText = cont.e;
+        document.getElementById('mix-inter').innerText = cont.i;
+        document.getElementById('mix-premium').innerText = cont.p;
+        document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
+    }
 
-    // Preenche as opções dos filtros baseados no que veio do SQL
-    const preencherFiltrosUnicos = (lista) => {
-        const unique = (attr) => [...new Set(lista.map(p => p[attr]))].filter(Boolean).sort();
-        
-        const render = (el, data, label) => {
-            el.innerHTML = data.map(v => `<option value="${v}">${v}</option>`).join('');
-        };
+    function limparTudo() {
+        produtosBase = [];
+        Object.values(lists).forEach(l => l.innerHTML = '');
+        atualizarKanban();
+    }
 
-        render(selColecao, unique('colecao'));
-        render(selLinha, unique('linha'));
-        render(selGrupo, unique('grupo'));
-    };
-
-    // Eventos de mudança nos filtros múltiplos
-    [selColecao, selLinha, selGrupo].forEach(el => el.addEventListener('change', atualizarKanban));
-
-    // --- CONFIGURAÇÕES DE FAIXA ---
+    // Modal e Save
+    document.getElementById('btn-config').onclick = () => document.getElementById('configModal').style.display = 'block';
     document.getElementById('btn-save-ranges').onclick = () => {
         atualizarKanban();
         document.getElementById('configModal').style.display = 'none';
     };
-    
-    // Abrir/Fechar Modal
-    document.getElementById('btn-config').onclick = () => document.getElementById('configModal').style.display = 'block';
-    document.getElementById('close-modal').onclick = () => document.getElementById('configModal').style.display = 'none';
 });

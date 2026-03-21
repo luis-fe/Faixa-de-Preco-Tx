@@ -1,121 +1,229 @@
-document.addEventListener('DOMContentLoaded', () => {
-    let produtosBase = []; // Armazena o que vem do Banco de Dados
+<?php
+session_save_path(sys_get_temp_dir()); 
+session_start();
 
-    const selPlano = document.getElementById('filter-plano');
-    const lists = {
-        colecao: document.getElementById('list-colecao'),
-        linha: document.getElementById('list-linha'),
-        grupo: document.getElementById('list-grupo')
-    };
-
-    // --- BUSCAR DADOS DO POSTGRES ---
-    selPlano.addEventListener('change', () => {
-        const plano = selPlano.value;
-        if (!plano) {
-            limparTudo();
-            return;
+if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
+    header("Location: ../../index.php");
+    exit;
+}
+require_once __DIR__ . '/../../db.php';
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban de Produtos</title>
+    <style>
+        :root {
+            --green-primary: #2E7D32;
+            --green-light: #E8F5E9;
+            --green-medium: #4CAF50;
+            --white: #FFFFFF;
         }
 
-        // Busca os produtos desse plano no banco
-        fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
-            .then(res => res.json())
-            .then(data => {
-                produtosBase = data.map(p => ({
-                    ref: p.referencia,
-                    desc: p.descricao,
-                    colecao: p.colecao || 'OUTROS',
-                    linha: p.linha || 'OUTROS',
-                    grupo: p.grupo || 'OUTROS',
-                    preco: parseFloat(p.precoB2B) || 0
-                }));
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--green-light);
+            color: var(--green-primary);
+            margin: 0; padding: 0;
+        }
 
-                gerarCheckboxes(); // Cria as opções baseadas no Plano selecionado
-                atualizarKanban();
-                document.getElementById('last-sync').innerText = new Date().toLocaleTimeString();
-            })
-            .catch(err => console.error("Erro ao buscar dados:", err));
-    });
+        /* Cabeçalho */
+        .header {
+            background-color: var(--green-primary);
+            color: var(--white);
+            padding: 15px 20px; 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; 
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-    // --- GERAR CHECKBOXES DINAMICAMENTE ---
-    function gerarCheckboxes() {
-        const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
+        .filters { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
 
-        const preencher = (key, data) => {
-            lists[key].innerHTML = data.map(val => `
-                <label><input type="checkbox" value="${val}" data-type="${key}" checked> ${val}</label>
-            `).join('');
-            
-            // Adiciona evento em cada checkbox novo
-            lists[key].querySelectorAll('input').forEach(chk => {
-                chk.addEventListener('change', atualizarKanban);
+        /* Estilo Select Plano */
+        #filter-plano {
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--white);
+            background: var(--white);
+            color: var(--green-primary);
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* CUSTOM MULTI-SELECT (Dropdown Suspenso) */
+        .multiselect-container {
+            position: relative;
+            display: inline-block;
+            min-width: 180px;
+        }
+
+        .select-box {
+            background-color: var(--white);
+            color: var(--green-primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .select-box::after { content: '▼'; font-size: 0.7em; margin-left: 10px; }
+
+        .checkboxes-list {
+            display: none;
+            position: absolute;
+            background-color: var(--white);
+            border: 1px solid #ccc;
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1001;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            padding: 5px 0;
+        }
+
+        .checkboxes-list.show { display: block; }
+
+        .checkboxes-list label {
+            display: block;
+            padding: 8px 12px;
+            color: #333;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .checkboxes-list label:hover { background-color: var(--green-light); }
+        .checkboxes-list input { margin-right: 10px; }
+
+        /* Estilo do Kanban (Mantido) */
+        .global-indicator {
+            background-color: var(--white); color: var(--green-primary);
+            padding: 8px 15px; border-radius: 20px; font-weight: bold;
+            border: 2px solid var(--green-medium);
+        }
+
+        .kanban-board { display: flex; gap: 20px; padding: 20px; height: calc(100vh - 140px); }
+        .kanban-column {
+            background-color: var(--white); flex: 1; border: 2px solid var(--green-medium);
+            border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 15px; text-align: center; }
+        .kanban-cards {
+            padding: 15px; overflow-y: auto; flex-grow: 1; background-color: #fafafa;
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-gap: 15px; align-content: start;
+        }
+        .card {
+            background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
+            padding: 12px 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #333; gap: 6px;
+        }
+        .card .ref { font-size: 0.8em; color: #666; }
+        .card .price { color: var(--green-primary); font-weight: bold; font-size: 1.1em; }
+
+        /* Modal e Outros */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
+        .modal-content { background: #fff; width: 450px; margin: 10% auto; padding: 20px; border-radius: 8px; border: 3px solid var(--green-primary); }
+        .footer { text-align: center; font-size: 0.8em; color: #666; padding: 10px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="filters">
+            <select id="filter-plano">
+                <option value="">SELECIONE O PLANO</option>
+                <?php
+                $stmt = $pdo->query('SELECT plano FROM "Plano" ORDER BY plano');
+                while($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    echo '<option value="'.$r['plano'].'">'.$r['plano'].'</option>';
+                }
+                ?>
+            </select>
+
+            <div class="multiselect-container" id="container-colecao">
+                <div class="select-box" onclick="toggleDropdown('list-colecao')">COLEÇÕES</div>
+                <div class="checkboxes-list" id="list-colecao"></div>
+            </div>
+
+            <div class="multiselect-container" id="container-linha">
+                <div class="select-box" onclick="toggleDropdown('list-linha')">LINHAS</div>
+                <div class="checkboxes-list" id="list-linha"></div>
+            </div>
+
+            <div class="multiselect-container" id="container-grupo">
+                <div class="select-box" onclick="toggleDropdown('list-grupo')">GRUPOS</div>
+                <div class="checkboxes-list" id="list-grupo"></div>
+            </div>
+
+            <button class="btn" id="btn-config">Configurar Faixas</button>
+        </div>
+        <div class="global-indicator">Mix Total: <span id="total-mix">0</span></div>
+    </div>
+
+    <div class="kanban-board">
+        <div class="kanban-column" id="col-entrada">
+            <div class="kanban-header">
+                <h3>Entrada</h3>
+                <span class="range-info" id="info-range-entrada">R$ 0 - R$ 99.99</span>
+                <span class="mix-info">Mix: <span id="mix-entrada">0</span></span>
+            </div>
+            <div class="kanban-cards" id="cards-entrada"></div>
+        </div>
+        <div class="kanban-column" id="col-inter">
+            <div class="kanban-header">
+                <h3>Intermediário</h3>
+                <span class="range-info" id="info-range-inter">R$ 100 - R$ 299</span>
+                <span class="mix-info">Mix: <span id="mix-inter">0</span></span>
+            </div>
+            <div class="kanban-cards" id="cards-inter"></div>
+        </div>
+        <div class="kanban-column" id="col-premium">
+            <div class="kanban-header">
+                <h3>Premium</h3>
+                <span class="range-info" id="info-range-premium">R$ 300+</span>
+                <span class="mix-info">Mix: <span id="mix-premium">0</span></span>
+            </div>
+            <div class="kanban-cards" id="cards-premium"></div>
+        </div>
+    </div>
+
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <h3>Faixas de Preço</h3>
+            <table style="width:100%">
+                <tr><td>Entrada</td><td>Até</td><td><input type="number" id="entrada-max" value="99.99"></td></tr>
+                <tr><td>Inter</td><td>Até</td><td><input type="number" id="inter-max" value="299.99"></td></tr>
+            </table>
+            <button class="btn" id="btn-save-ranges" style="margin-top:15px">Salvar</button>
+        </div>
+    </div>
+
+    <div class="footer">Sincronizado às: <span id="last-sync">--:--</span></div>
+
+    <script src="script.js"></script>
+    <script>
+        // Função global para o toggle do dropdown
+        function toggleDropdown(id) {
+            document.querySelectorAll('.checkboxes-list').forEach(l => {
+                if(l.id !== id) l.classList.remove('show');
             });
-        };
+            document.getElementById(id).classList.toggle('show');
+        }
 
-        preencher('colecao', unique('colecao'));
-        preencher('linha', unique('linha'));
-        preencher('grupo', unique('grupo'));
-    }
-
-    // --- LÓGICA DO KANBAN ---
-    function atualizarKanban() {
-        const getChecked = (key) => Array.from(lists[key].querySelectorAll('input:checked')).map(c => c.value);
-        
-        const fCol = getChecked('colecao');
-        const fLin = getChecked('linha');
-        const fGru = getChecked('grupo');
-
-        // Faixas de Preço
-        const eMax = parseFloat(document.getElementById('entrada-max').value) || 99.99;
-        const iMax = parseFloat(document.getElementById('inter-max').value) || 299.99;
-
-        // Filtragem
-        const filtrados = produtosBase.filter(p => 
-            fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo)
-        );
-
-        // Renderizar Cards
-        const cols = {
-            entrada: document.getElementById('cards-entrada'),
-            inter: document.getElementById('cards-inter'),
-            premium: document.getElementById('cards-premium')
-        };
-        Object.values(cols).forEach(c => c.innerHTML = '');
-
-        let cont = { e: 0, i: 0, p: 0 };
-
-        filtrados.forEach(p => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <span class="ref">${p.ref} - ${p.desc}</span>
-                <span class="price">R$ ${p.preco.toFixed(2)}</span>
-            `;
-
-            if (p.preco <= eMax) {
-                cols.entrada.appendChild(card); cont.e++;
-            } else if (p.preco <= iMax) {
-                cols.inter.appendChild(card); cont.i++;
-            } else {
-                cols.premium.appendChild(card); cont.p++;
+        // Fecha se clicar fora
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.multiselect-container')) {
+                document.querySelectorAll('.checkboxes-list').forEach(l => l.classList.remove('show'));
             }
         });
-
-        document.getElementById('mix-entrada').innerText = cont.e;
-        document.getElementById('mix-inter').innerText = cont.i;
-        document.getElementById('mix-premium').innerText = cont.p;
-        document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
-    }
-
-    function limparTudo() {
-        produtosBase = [];
-        Object.values(lists).forEach(l => l.innerHTML = '');
-        atualizarKanban();
-    }
-
-    // Modal e Save
-    document.getElementById('btn-config').onclick = () => document.getElementById('configModal').style.display = 'block';
-    document.getElementById('btn-save-ranges').onclick = () => {
-        atualizarKanban();
-        document.getElementById('configModal').style.display = 'none';
-    };
-});
+    </script>
+</body>
+</html>
