@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     let produtosBase = []; 
-    let dadosResumo = []; 
+    let colecoesAtuais = []; // Guarda as colunas dinâmicas da matriz
+    let dadosMatriz = []; // Guarda as linhas da matriz
     let sortConfig = { key: 'total', dir: 'desc' };
 
     // --- ELEMENTOS ---
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSave = document.getElementById('btn-save-ranges');
 
     const modalSummary = document.getElementById('summaryModal');
+    const theadResumo = document.getElementById('thead-resumo');
     const bodyResumo = document.getElementById('body-resumo');
     const tfootResumo = document.getElementById('tfoot-resumo');
     const btnAbrirResumo = document.getElementById('btn-resumo');
@@ -50,70 +52,109 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 2. RESUMO DO MIX (COM COLEÇÃO E TOTAL)
+    // 2. MATRIZ DE RESUMO (BI)
     // ==========================================
     btnAbrirResumo.onclick = () => {
         if (produtosBase.length === 0) { alert("Selecione um plano primeiro!"); return; }
         
-        processarDadosResumo();
-        
-        // Popula os grupos do resumo
+        // Popula o select de grupos disponíveis
         const uniqueGrupos = [...new Set(produtosBase.map(d => d.grupo))].sort();
         resumoFilterGrupo.innerHTML = '<option value="TODOS">TODOS OS GRUPOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
         
-        ordenarResumo('total', 'desc');
+        sortConfig = { key: 'total', dir: 'desc' }; // Reseta a ordenação para o padrão
+        atualizarDadosMatriz();
         modalSummary.style.display = 'block';
     };
 
-    resumoFilterGrupo.addEventListener('change', () => renderizarTabelaResumo());
+    resumoFilterGrupo.addEventListener('change', () => {
+        atualizarDadosMatriz();
+    });
 
-    function processarDadosResumo() {
-        const mapResumo = {};
-        produtosBase.forEach(p => {
-            // A chave agora sempre inclui a Coleção
-            const key = `${p.colecao}|${p.grupo}|${p.linha}`;
-            if (!mapResumo[key]) {
-                mapResumo[key] = { colecao: p.colecao, grupo: p.grupo, linha: p.linha, total: 0 };
+    function atualizarDadosMatriz() {
+        const grupoSelecionado = resumoFilterGrupo.value;
+        const produtosFiltrados = produtosBase.filter(p => grupoSelecionado === "TODOS" || p.grupo === grupoSelecionado);
+        
+        // Descobre as coleções (Colunas) existentes nesse filtro
+        colecoesAtuais = [...new Set(produtosFiltrados.map(p => p.colecao))].sort();
+
+        // Agrupa os dados
+        const linhasMap = {};
+        produtosFiltrados.forEach(p => {
+            const key = `${p.grupo}|${p.linha}`;
+            if (!linhasMap[key]) {
+                linhasMap[key] = { grupo: p.grupo, linha: p.linha, total: 0 };
+                colecoesAtuais.forEach(c => linhasMap[key][c] = 0); // Zera as coleções pra essa linha
             }
-            mapResumo[key].total++;
+            linhasMap[key][p.colecao]++;
+            linhasMap[key].total++;
         });
-        dadosResumo = Object.values(mapResumo);
+
+        dadosMatriz = Object.values(linhasMap);
+        
+        // Se a coleção usada na ordenação sumiu após o filtro, volta para "total"
+        if (!['grupo', 'linha', 'total'].includes(sortConfig.key) && !colecoesAtuais.includes(sortConfig.key)) {
+            sortConfig.key = 'total';
+            sortConfig.dir = 'desc';
+        }
+
+        window.ordenarMatriz(sortConfig.key, sortConfig.dir);
     }
 
-    function renderizarTabelaResumo() {
-        const grupoSelecionado = resumoFilterGrupo.value;
-        const filtrados = dadosResumo.filter(item => grupoSelecionado === "TODOS" || item.grupo === grupoSelecionado);
+    // Função de ordenação exposta para o HTML
+    window.ordenarMatriz = (key, forcedDir = null) => {
+        if (forcedDir) {
+            sortConfig.dir = forcedDir;
+        } else {
+            sortConfig.dir = (sortConfig.key === key && sortConfig.dir === 'asc') ? 'desc' : 'asc';
+        }
+        sortConfig.key = key;
 
-        let somaTotal = 0;
+        dadosMatriz.sort((a, b) => {
+            let vA = a[key] || 0, vB = b[key] || 0;
+            return typeof vA === 'string' 
+                ? (sortConfig.dir === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA)) 
+                : (sortConfig.dir === 'asc' ? vA - vB : vB - vA);
+        });
+        
+        renderizarMatrizHTML();
+    };
 
-        bodyResumo.innerHTML = filtrados.map(item => {
-            somaTotal += item.total;
-            return `<tr>
-                <td style="color: #666; font-size: 0.9em;">${item.colecao}</td>
-                <td>${item.grupo}</td>
-                <td>${item.linha}</td>
-                <td style="text-align: center; font-weight: bold; color: var(--green-primary);">${item.total}</td>
-            </tr>`;
+    function renderizarMatrizHTML() {
+        // Monta o Cabeçalho (Thead)
+        let theadHtml = `<tr>
+            <th onclick="ordenarMatriz('grupo')">GRUPO ↕️</th>
+            <th onclick="ordenarMatriz('linha')">LINHA ↕️</th>`;
+        colecoesAtuais.forEach(c => {
+            theadHtml += `<th style="text-align: center;" onclick="ordenarMatriz('${c}')">${c} ↕️</th>`;
+        });
+        theadHtml += `<th style="text-align: center; background: var(--green-medium);" onclick="ordenarMatriz('total')">TOTAL ↕️</th></tr>`;
+        theadResumo.innerHTML = theadHtml;
+
+        // Monta o Corpo (Tbody)
+        let totaisColunas = {};
+        colecoesAtuais.forEach(c => totaisColunas[c] = 0);
+        let totalGeral = 0;
+
+        bodyResumo.innerHTML = dadosMatriz.map(row => {
+            let tr = `<tr><td>${row.grupo}</td><td><strong>${row.linha}</strong></td>`;
+            colecoesAtuais.forEach(c => {
+                const val = row[c] || 0;
+                totaisColunas[c] += val;
+                tr += `<td style="text-align: center; color: ${val > 0 ? 'var(--green-primary)' : '#ccc'}; font-weight: ${val > 0 ? 'bold' : 'normal'};">${val > 0 ? val : '-'}</td>`;
+            });
+            totalGeral += row.total;
+            tr += `<td style="text-align: center; font-weight: bold; background: #f1f8e9; color: var(--green-primary);">${row.total}</td></tr>`;
+            return tr;
         }).join('');
 
-        // Monta o Rodapé (colspan 3 para cobrir Coleção, Grupo e Linha)
-        tfootResumo.innerHTML = `
-            <tr>
-                <td colspan="3" style="text-align: right; padding: 12px; font-size: 1.1em;">TOTAL GERAL:</td>
-                <td style="text-align: center; padding: 12px; font-size: 1.2em;">${somaTotal}</td>
-            </tr>
-        `;
-    }
-
-    window.ordenarResumo = (key, forcedDir = null) => {
-        sortConfig.dir = forcedDir || (sortConfig.key === key && sortConfig.dir === 'asc' ? 'desc' : 'asc');
-        sortConfig.key = key;
-        dadosResumo.sort((a, b) => {
-            let vA = a[key], vB = b[key];
-            return typeof vA === 'string' ? (sortConfig.dir === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA)) : (sortConfig.dir === 'asc' ? vA - vB : vB - vA);
+        // Monta o Rodapé (Tfoot)
+        let tfootHtml = `<tr><td colspan="2" style="text-align: right; padding: 12px; font-size: 1.1em;">TOTAL GERAL:</td>`;
+        colecoesAtuais.forEach(c => {
+            tfootHtml += `<td style="text-align: center; padding: 12px; font-size: 1.1em;">${totaisColunas[c]}</td>`;
         });
-        renderizarTabelaResumo();
-    };
+        tfootHtml += `<td style="text-align: center; padding: 12px; font-size: 1.2em;">${totalGeral}</td></tr>`;
+        tfootResumo.innerHTML = tfootHtml;
+    }
 
     // ==========================================
     // 3. CHECKBOXES DO KANBAN

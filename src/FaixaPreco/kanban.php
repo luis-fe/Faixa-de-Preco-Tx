@@ -122,15 +122,15 @@ require_once __DIR__ . '/../../db.php';
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: var(--green-primary); font-weight: bold; }
         .footer { text-align: center; font-size: 0.8em; color: #666; padding: 10px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ccc;}
 
-        /* Estilo específico para Tabela de Resumo */
+        /* ESTILO DA MATRIZ DE RESUMO */
         #table-resumo { width: 100%; border-collapse: collapse; margin-top: 10px; }
         #table-resumo thead th { 
             background: var(--green-primary); color: white; padding: 12px; 
-            text-align: left; position: sticky; top: 0; cursor: pointer; font-size: 0.85em;
+            position: sticky; top: 0; cursor: pointer; font-size: 0.85em; text-align: left;
         }
         #table-resumo thead th:hover { background: var(--green-medium); }
         #table-resumo tbody tr:nth-child(even) { background-color: #f9f9f9; }
-        #table-resumo tbody tr:hover { background-color: #f1f8e9; }
+        #table-resumo tbody tr:hover { background-color: #e8f5e9; }
         #table-resumo td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; }
     </style>
 </head>
@@ -170,7 +170,7 @@ require_once __DIR__ . '/../../db.php';
             </div>
 
             <button class="btn" id="btn-config">Configurar Faixas</button>
-            <button class="btn" id="btn-resumo" style="background-color: #1976D2; border-color: #white;">Resumo do Mix</button>
+            <button class="btn" id="btn-resumo" style="background-color: #1976D2; border-color: #white;">Matriz de Mix</button>
         </div>
         <div class="global-indicator">Mix Total: <span id="total-mix">0</span></div>
     </div>
@@ -229,10 +229,10 @@ require_once __DIR__ . '/../../db.php';
         </div>
     </div>
 
-<div id="summaryModal" class="modal">
-        <div class="modal-content" style="width: 800px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+    <div id="summaryModal" class="modal">
+        <div class="modal-content" style="width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
             <span class="close-modal" id="close-summary">&times;</span>
-            <h2 style="margin: 0;">Resumo do Mix</h2>
+            <h2 style="margin: 0;">Matriz do Mix (Linhas x Coleções)</h2>
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
             
             <div style="background: #f1f8e9; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
@@ -242,16 +242,10 @@ require_once __DIR__ . '/../../db.php';
                 </select>
             </div>
             
-            <div style="overflow-y: auto; flex-grow: 1;">
+            <div style="overflow-y: auto; overflow-x: auto; flex-grow: 1;">
                 <table id="table-resumo">
-                    <thead>
-                        <tr>
-                            <th onclick="ordenarResumo('colecao')">COLEÇÃO ↕️</th>
-                            <th onclick="ordenarResumo('grupo')">GRUPO ↕️</th>
-                            <th onclick="ordenarResumo('linha')">LINHA ↕️</th>
-                            <th onclick="ordenarResumo('total')" style="text-align: center;">TOTAL PRODUTOS ↕️</th>
-                        </tr>
-                    </thead>
+                    <thead id="thead-resumo">
+                        </thead>
                     <tbody id="body-resumo">
                         </tbody>
                     <tfoot id="tfoot-resumo" style="position: sticky; bottom: 0; background: var(--green-primary); color: white; font-weight: bold;">
