@@ -89,7 +89,7 @@ require_once __DIR__ . '/../../db.php';
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
         }
         
-        /* CARD ATUALIZADO (Com Design do B2C e Markup) */
+        /* CARD ATUALIZADO (Com Design do B2C e Markup Maior) */
         .card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
             padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
@@ -109,7 +109,10 @@ require_once __DIR__ . '/../../db.php';
             display: flex; justify-content: space-between; align-items: baseline; 
         }
         .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
-        .card .markup { color: #888; font-size: 0.70em; font-weight: bold; }
+        
+        /* MARKUP MAIOR */
+        .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
+        
         .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
         /* Modal */

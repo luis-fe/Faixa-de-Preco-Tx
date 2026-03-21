@@ -37,9 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return res.json();
             })
             .then(data => {
-                console.log("Teste de Carga B2C/Markup. Primeiro item do banco:", data[0]);
-
                 produtosBase = data.map(p => {
+                    // Limpa apenas campos de moeda com padrão BR (Preços)
                     const limpaMoeda = (val) => {
                         if (!val || String(val).trim() === '') return 0;
                         let limpo = String(val).replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
@@ -55,8 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco),
                         precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
-                        // O Markup chega como texto e tratamos para float para usar o toLocaleString
-                        mkp: limpaMoeda(p.MkpB2B || p.mkpb2b), 
+                        
+                        // CORREÇÃO: O banco já manda o Markup pronto (ex: "2.50"). O parseFloat lê direto!
+                        mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, 
 
                         eMax: parseFloat(p.faixa_entrada_max) || 0, 
                         iMax: parseFloat(p.faixa_inter_max) || 0
@@ -188,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'card';
             
-            // Só exibe B2C e Markup se os valores forem maiores que zero
             let textoB2C = '';
             if (p.precoB2C > 0) {
                 textoB2C = `<span class="price-b2c">(B2C - ${p.precoB2C.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})})</span>`;
@@ -196,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let textoMkp = '';
             if (p.mkp > 0) {
-                textoMkp = `<span class="markup">Mkp: ${p.mkp.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+                textoMkp = `<span class="markup">Mkt: ${p.mkp.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
             }
 
             card.innerHTML = `
@@ -225,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-entrada').innerText = cont.e;
         document.getElementById('mix-inter').innerText = cont.i;
         document.getElementById('mix-premium').innerText = cont.p;
-        document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
+        document.getElementById('total-mix').innerText = cont.e + cont.i + p;
         
         const infoEntrada = document.getElementById('info-range-entrada');
         const infoInter = document.getElementById('info-range-inter');
