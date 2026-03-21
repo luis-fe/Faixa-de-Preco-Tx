@@ -215,17 +215,28 @@ require_once 'db.php';
 <body>
 
     <div class="header">
-        <div class="filters">
-            <select id="filter-colecao"><option value="">COLECAO</option></select>
-            <select id="filter-linha"><option value="">LINHA</option></select>
-            <select id="filter-grupo"><option value="">GRUPO</option></select>
-            
-            <button class="btn" id="btn-config">Configurar Faixas</button>
-        </div>
-        <div class="global-indicator">
-            Mix Total: <span id="total-mix">0</span> produtos
-        </div>
+    <div class="filters">
+        <select id="filter-plano">
+            <option value="">SELECIONE UM PLANO</option>
+            <?php
+            // Busca os planos para preencher o select
+            $stmt = $pdo->query('SELECT plano FROM "Plano" ORDER BY plano ASC');
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                echo '<option value="'.$row['plano'].'">'.htmlspecialchars($row['plano']).'</option>';
+            }
+            ?>
+        </select>
+
+        <select id="filter-colecao" multiple><option value="">COLEÇÃO</option></select>
+        <select id="filter-linha" multiple><option value="">LINHA</option></select>
+        <select id="filter-grupo" multiple><option value="">GRUPO</option></select>
+        
+        <button class="btn" id="btn-config">Configurar Faixas</button>
     </div>
+    <div class="global-indicator">
+        Mix Total: <span id="total-mix">0</span> produtos
+    </div>
+</div>
 
     <div id="configModal" class="modal">
         <div class="modal-content">

@@ -1,148 +1,114 @@
 document.addEventListener('DOMContentLoaded', () => {
+    let produtosBase = []; // Dados vindos do SQL
 
-    let produtos = []; 
-    let jsonAnterior = ""; 
+    // Elementos dos Filtros
+    const selPlano = document.getElementById('filter-plano');
+    const selColecao = document.getElementById('filter-colecao');
+    const selLinha = document.getElementById('filter-linha');
+    const selGrupo = document.getElementById('filter-grupo');
 
-    // --- CONTROLE DO MODAL ---
-    const modal = document.getElementById('configModal');
-    const btnConfig = document.getElementById('btn-config');
-    const spanClose = document.getElementById('close-modal');
-    const btnSave = document.getElementById('btn-save-ranges');
+    // --- BUSCAR DADOS QUANDO O PLANO MUDAR ---
+    selPlano.addEventListener('change', () => {
+        const plano = selPlano.value;
+        if (!plano) return;
 
-    btnConfig.onclick = () => modal.style.display = 'block';
-    spanClose.onclick = () => modal.style.display = 'none';
-    window.onclick = (event) => {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    };
+        fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
+            .then(res => res.json())
+            .then(data => {
+                // De/Para do Banco para o Objeto do JS
+                produtosBase = data.map(item => ({
+                    ref: item.referencia,
+                    colecao: item.colecao,
+                    linha: item.linha,
+                    grupo: item.grupo,
+                    preco: parseFloat(item.precoB2B) || 0
+                }));
 
-    // --- FUNÇÕES UTILITÁRIAS ---
-    const formatarMoeda = (valor) => {
-        return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
+                preencherFiltrosUnicos(produtosBase);
+                atualizarKanban();
+                
+                document.getElementById('last-sync').innerText = new Date().toLocaleTimeString();
+            });
+    });
 
-    const converterPrecoExcelParaNumero = (precoString) => {
-        if (!precoString) return 0;
-        let limpo = precoString.replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
-        return parseFloat(limpo) || 0;
-    };
-
-    // --- LÓGICA DO KANBAN ---
+    // --- LÓGICA DE FILTRAGEM ---
     const atualizarKanban = () => {
+        // Pega valores múltiplos dos filtros
+        const getSelectValues = (select) => Array.from(select.selectedOptions).map(opt => opt.value).filter(v => v !== "");
+        
+        const fColecoes = getSelectValues(selColecao);
+        const fLinhas = getSelectValues(selLinha);
+        const fGrupos = getSelectValues(selGrupo);
+
+        // Faixas de Preço
         const faixas = {
-            entrada: {
-                min: parseFloat(document.getElementById('entrada-min').value) || 0,
-                max: parseFloat(document.getElementById('entrada-max').value) || 0
-            },
-            inter: {
-                min: parseFloat(document.getElementById('inter-min').value) || 0,
-                max: parseFloat(document.getElementById('inter-max').value) || 0
-            },
-            premium: {
-                min: parseFloat(document.getElementById('premium-min').value) || 0,
-                max: parseFloat(document.getElementById('premium-max').value) || Infinity
-            }
+            entrada: { min: parseFloat(document.getElementById('entrada-min').value) || 0, max: parseFloat(document.getElementById('entrada-max').value) || 0 },
+            inter: { min: parseFloat(document.getElementById('inter-min').value) || 0, max: parseFloat(document.getElementById('inter-max').value) || 0 },
+            premium: { min: parseFloat(document.getElementById('premium-min').value) || 0, max: Infinity }
         };
 
-        document.getElementById('info-range-entrada').innerText = `${formatarMoeda(faixas.entrada.min)} - ${formatarMoeda(faixas.entrada.max)}`;
-        document.getElementById('info-range-inter').innerText = `${formatarMoeda(faixas.inter.min)} - ${formatarMoeda(faixas.inter.max)}`;
-        document.getElementById('info-range-premium').innerText = `${formatarMoeda(faixas.premium.min)} - ${formatarMoeda(faixas.premium.max)}`;
+        // Filtra os produtos base
+        const produtosFiltrados = produtosBase.filter(p => {
+            const matchCol = fColecoes.length === 0 || fColecoes.includes(p.colecao);
+            const matchLin = fLinhas.length === 0 || fLinhas.includes(p.linha);
+            const matchGru = fGrupos.length === 0 || fGrupos.includes(p.grupo);
+            return matchCol && matchLin && matchGru;
+        });
 
-        const colEntrada = document.getElementById('cards-entrada');
-        const colInter = document.getElementById('cards-inter');
-        const colPremium = document.getElementById('cards-premium');
-        
-        colEntrada.innerHTML = '';
-        colInter.innerHTML = '';
-        colPremium.innerHTML = '';
+        // Limpa Colunas
+        const cols = {
+            entrada: document.getElementById('cards-entrada'),
+            inter: document.getElementById('cards-inter'),
+            premium: document.getElementById('cards-premium')
+        };
+        Object.values(cols).forEach(c => c.innerHTML = '');
 
-        let mixEntrada = 0, mixInter = 0, mixPremium = 0;
+        let cont = { entrada: 0, inter: 0, premium: 0 };
 
-        produtos.forEach(produto => {
+        produtosFiltrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
-            
-            card.innerHTML = `
-                <span class="ref">${produto.ref}</span>
-                <span class="price">${formatarMoeda(produto.preco)}</span>
-            `;
+            card.innerHTML = `<span class="ref">${p.ref}</span><span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>`;
 
-            if (produto.preco >= faixas.entrada.min && produto.preco <= faixas.entrada.max) {
-                colEntrada.appendChild(card);
-                mixEntrada++;
-            } else if (produto.preco >= faixas.inter.min && produto.preco <= faixas.inter.max) {
-                colInter.appendChild(card);
-                mixInter++;
-            } else if (produto.preco >= faixas.premium.min && produto.preco <= faixas.premium.max) {
-                colPremium.appendChild(card);
-                mixPremium++;
+            if (p.preco >= faixas.entrada.min && p.preco <= faixas.entrada.max) {
+                cols.entrada.appendChild(card); cont.entrada++;
+            } else if (p.preco >= faixas.inter.min && p.preco <= faixas.inter.max) {
+                cols.inter.appendChild(card); cont.inter++;
+            } else if (p.preco >= faixas.premium.min) {
+                cols.premium.appendChild(card); cont.premium++;
             }
         });
 
-        document.getElementById('mix-entrada').innerText = mixEntrada;
-        document.getElementById('mix-inter').innerText = mixInter;
-        document.getElementById('mix-premium').innerText = mixPremium;
+        // Atualiza indicadores
+        document.getElementById('mix-entrada').innerText = cont.entrada;
+        document.getElementById('mix-inter').innerText = cont.inter;
+        document.getElementById('mix-premium').innerText = cont.premium;
+        document.getElementById('total-mix').innerText = cont.entrada + cont.inter + cont.premium;
+    };
+
+    // Preenche as opções dos filtros baseados no que veio do SQL
+    const preencherFiltrosUnicos = (lista) => {
+        const unique = (attr) => [...new Set(lista.map(p => p[attr]))].filter(Boolean).sort();
         
-        document.getElementById('total-mix').innerText = mixEntrada + mixInter + mixPremium;
+        const render = (el, data, label) => {
+            el.innerHTML = data.map(v => `<option value="${v}">${v}</option>`).join('');
+        };
+
+        render(selColecao, unique('colecao'));
+        render(selLinha, unique('linha'));
+        render(selGrupo, unique('grupo'));
     };
 
-    // --- BUSCAR DADOS DO PHP (JSON) ---
-    const carregarDadosDoServidor = () => {
-        fetch('dados.json?t=' + new Date().getTime())
-            .then(response => {
-                if (!response.ok) throw new Error("Ainda não há dados sincronizados.");
-                return response.text(); 
-            })
-            .then(textData => {
-                if (textData !== jsonAnterior) {
-                    jsonAnterior = textData; 
-                    
-                    const data = JSON.parse(textData); 
-                    
-                    produtos = data.map(item => ({
-                        ref: item.ref,
-                        colecao: item.colecao,
-                        linha: item.linha,
-                        grupo: item.grupo,
-                        preco: converterPrecoExcelParaNumero(item.preco)
-                    }));
-                    
-                    preencherFiltrosUnicos(produtos);
-                    atualizarKanban();
+    // Eventos de mudança nos filtros múltiplos
+    [selColecao, selLinha, selGrupo].forEach(el => el.addEventListener('change', atualizarKanban));
 
-                    // --- ATUALIZA A HORA NO RODAPÉ ---
-                    const agora = new Date();
-                    const horaFormatada = agora.toLocaleTimeString('pt-BR'); 
-                    document.getElementById('last-sync').innerText = horaFormatada;
-                }
-            })
-            .catch(error => {
-                console.log(error.message);
-            });
-    };
-
-    // Função que preenche os dropdowns
-    const preencherFiltrosUnicos = (listaProdutos) => {
-        const colecoes = [...new Set(listaProdutos.map(p => p.colecao))].filter(Boolean);
-        const linhas = [...new Set(listaProdutos.map(p => p.linha))].filter(Boolean);
-        const grupos = [...new Set(listaProdutos.map(p => p.grupo))].filter(Boolean);
-
-        const selColecao = document.getElementById('filter-colecao');
-        const selLinha = document.getElementById('filter-linha');
-        const selGrupo = document.getElementById('filter-grupo');
-
-        selColecao.innerHTML = '<option value="">COLEÇÃO</option>' + colecoes.map(c => `<option value="${c}">${c}</option>`).join('');
-        selLinha.innerHTML = '<option value="">LINHA</option>' + linhas.map(l => `<option value="${l}">${l}</option>`).join('');
-        selGrupo.innerHTML = '<option value="">GRUPO</option>' + grupos.map(g => `<option value="${g}">${g}</option>`).join('');
-    };
-
-    // --- EVENTOS ---
-    btnSave.addEventListener('click', () => {
+    // --- CONFIGURAÇÕES DE FAIXA ---
+    document.getElementById('btn-save-ranges').onclick = () => {
         atualizarKanban();
-        modal.style.display = 'none';
-    });
-
-    carregarDadosDoServidor();
-    setInterval(carregarDadosDoServidor, 5000);
+        document.getElementById('configModal').style.display = 'none';
+    };
+    
+    // Abrir/Fechar Modal
+    document.getElementById('btn-config').onclick = () => document.getElementById('configModal').style.display = 'block';
+    document.getElementById('close-modal').onclick = () => document.getElementById('configModal').style.display = 'none';
 });
