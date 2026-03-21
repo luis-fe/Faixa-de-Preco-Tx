@@ -13,14 +13,15 @@ if (empty($plano)) {
 }
 
 try {
-    // A MÁGICA DOS TERCEIS (1/3, 2/3) NO POSTGRESQL
+    // A MÁGICA DOS TERCEIS (Tratando Vírgula e Texto para Número)
     $sql = '
     WITH stats AS (
         SELECT 
             p.linha, 
             p.grupo,
-            MIN(CAST(NULLIF(pp."precoB2B", \'\') AS NUMERIC)) AS min_preco,
-            MAX(CAST(NULLIF(pp."precoB2B", \'\') AS NUMERIC)) AS max_preco
+            -- Limpa R$ e troca vírgula por ponto antes de converter para matemática
+            MIN(CAST(REPLACE(REPLACE(NULLIF(pp."precoB2B", \'\'), \'R$\', \'\'), \',\', \'.\') AS NUMERIC)) AS min_preco,
+            MAX(CAST(REPLACE(REPLACE(NULLIF(pp."precoB2B", \'\'), \'R$\', \'\'), \',\', \'.\') AS NUMERIC)) AS max_preco
         FROM "produto_plano" pp
         INNER JOIN "produto" p ON p.referencia = pp.referencia
         WHERE pp.plano = :plano
@@ -29,15 +30,16 @@ try {
     SELECT 
         p.*, 
         pp."precoB2B",
-        -- COALESCE: Se a faixa salva for NULA, ele calcula 1/3 do intervalo (Min + (Max - Min) / 3)
+        
+        -- Calcula o 1/3 e tenta usar o salvo se existir
         COALESCE(
-            CAST(NULLIF(fx."valorEntradaB2B", \'\') AS NUMERIC), 
+            CAST(REPLACE(NULLIF(fx."valorEntradaB2B", \'\'), \',\', \'.\') AS NUMERIC), 
             s.min_preco + ((s.max_preco - s.min_preco) / 3.0)
         ) AS faixa_entrada_max,
         
-        -- COALESCE: Se a faixa salva for NULA, ele calcula 2/3 do intervalo
+        -- Calcula o 2/3 e tenta usar o salvo se existir
         COALESCE(
-            CAST(NULLIF(fx."valorintermediarioB2B", \'\') AS NUMERIC), 
+            CAST(REPLACE(NULLIF(fx."valorintermediarioB2B", \'\'), \',\', \'.\') AS NUMERIC), 
             s.min_preco + (((s.max_preco - s.min_preco) / 3.0) * 2.0)
         ) AS faixa_inter_max
 
@@ -58,6 +60,6 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(["error" => "Erro SQL: " . $e->getMessage()]);
+    echo json_encode(["error" => "Erro no SQL: " . $e->getMessage()]);
 }
 ?>

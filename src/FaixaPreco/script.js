@@ -29,7 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
-            .then(res => res.json())
+            .then(async res => {
+                // Se o servidor devolver erro 500, lê a mensagem de erro que o PHP mandou
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || "Erro desconhecido no servidor.");
+                }
+                return res.json();
+            })
             .then(data => {
                 produtosBase = data.map(p => ({
                     ref: p.referencia || 'N/A',
@@ -37,8 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     colecao: p.colecao || 'GERAL',
                     linha: p.linha || 'GERAL',
                     grupo: p.grupo || 'GERAL',
-                    preco: parseFloat(p.precoB2B || p.precob2b || p.preco) || 0,
-                    // Recebe o limite dinâmico de cada produto do banco de dados (1/3 e 2/3 ou salvo)
+                    preco: parseFloat((p.precoB2B || p.precob2b || p.preco || "0").replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0,
                     eMax: parseFloat(p.faixa_entrada_max) || 0, 
                     iMax: parseFloat(p.faixa_inter_max) || 0
                 }));
@@ -51,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(err => {
                 console.error("Erro Crítico ao buscar dados:", err);
-                alert("Erro ao conectar com o banco de dados. Veja o console (F12).");
+                alert("Falha: " + err.message); // Agora o erro pula na tela!
             });
     });
 
@@ -66,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label><input type="checkbox" value="${val}" checked> ${val}</label>
             `).join('');
             
-            // Faz o Kanban atualizar em tempo real ao clicar nas checkboxes
             container.querySelectorAll('input').forEach(chk => {
                 chk.addEventListener('change', atualizarKanban);
             });
@@ -84,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const uniqueLinhas = [...new Set(produtosBase.map(p => p.linha))].sort();
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
 
-        // Adiciona um valor vazio bloqueado para obrigar o clique
         modalSelLinha.innerHTML = '<option value="" disabled selected>Selecione a Linha...</option><option value="TODAS">TODAS AS LINHAS</option>' + 
             uniqueLinhas.map(l => `<option value="${l}">${l}</option>`).join('');
         
@@ -92,14 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
             uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
 
-    // Esconde a área de faixas até que Linha e Grupo sejam escolhidos
     function verificarSelecaoModal() {
         if (msgFiltros && areaFaixas) {
             if (modalSelLinha.value !== "" && modalSelGrupo.value !== "") {
                 msgFiltros.style.display = 'none';
                 areaFaixas.style.display = 'block';
 
-                // PROCURA o primeiro produto correspondente para preencher as caixas de preço com a regra atual
                 const amostra = produtosBase.find(p => 
                     (modalSelLinha.value === "TODAS" || p.linha === modalSelLinha.value) && 
                     (modalSelGrupo.value === "TODOS" || p.grupo === modalSelGrupo.value)
@@ -117,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Escuta as mudanças nos selects do modal
     modalSelLinha.addEventListener('change', verificarSelecaoModal);
     modalSelGrupo.addEventListener('change', verificarSelecaoModal);
 
@@ -133,18 +134,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const fLinhaModal = modalSelLinha.value;
         const fGrupoModal = modalSelGrupo.value;
 
-        // Filtragem Cruzada
         const filtrados = produtosBase.filter(p => {
             const matchColecao = fColecoes.includes(p.colecao);
-            
-            // Se o modal estiver em 'TODAS' ou vazio, respeita as checkboxes. Se não, força a linha do modal.
             const matchLinha = (!fLinhaModal || fLinhaModal === "TODAS") ? fLinhasHeader.includes(p.linha) : (p.linha === fLinhaModal);
             const matchGrupo = (!fGrupoModal || fGrupoModal === "TODOS") ? fGruposHeader.includes(p.grupo) : (p.grupo === fGrupoModal);
             
             return matchColecao && matchLinha && matchGrupo;
         });
 
-        // Limpa Colunas
         const cols = {
             entrada: document.getElementById('cards-entrada'),
             inter: document.getElementById('cards-inter'),
@@ -154,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let cont = { e: 0, i: 0, p: 0 };
 
-        // Distribui Cards com base nos limites próprios de cada produto (1/3, 2/3 ou salvos)
         filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
@@ -175,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Atualiza Painéis e Legendas
         document.getElementById('mix-entrada').innerText = cont.e;
         document.getElementById('mix-inter').innerText = cont.i;
         document.getElementById('mix-premium').innerText = cont.p;
@@ -194,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTitle.innerText = plano ? "Configurando: " + plano : "⚠️ Selecione o plano primeiro";
         modalTitle.style.color = plano ? "var(--green-primary)" : "red";
         
-        // Reseta o modal toda vez que ele abre
         modalSelLinha.value = "";
         modalSelGrupo.value = "";
         verificarSelecaoModal();
@@ -244,10 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("Erro do Banco de Dados: " + data.error);
             } else {
                 modal.style.display = 'none';
-                
-                // MÁGICA: Dispara o "change" no select. 
-                // Isso faz o JS refazer o "fetch" no banco de dados automaticamente!
-                selPlano.dispatchEvent(new Event('change'));
+                selPlano.dispatchEvent(new Event('change')); // Recarrega os dados recalculados!
             }
         })
         .catch(err => {
@@ -260,9 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // ==========================================
-    // 7. FUNÇÃO AUXILIAR
-    // ==========================================
     function limparFiltros() {
         produtosBase = [];
         listColecao.innerHTML = '';
