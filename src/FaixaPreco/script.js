@@ -37,7 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     colecao: p.colecao || 'GERAL',
                     linha: p.linha || 'GERAL',
                     grupo: p.grupo || 'GERAL',
-                    preco: parseFloat(p.precoB2B || p.precob2b || p.preco) || 0 
+                    preco: parseFloat(p.precoB2B || p.precob2b || p.preco) || 0,
+                    // Recebe o limite dinâmico de cada produto do banco de dados (1/3 e 2/3 ou salvo)
+                    eMax: parseFloat(p.faixa_entrada_max) || 0, 
+                    iMax: parseFloat(p.faixa_inter_max) || 0
                 }));
 
                 gerarFiltrosCheckboxes();
@@ -95,6 +98,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalSelLinha.value !== "" && modalSelGrupo.value !== "") {
                 msgFiltros.style.display = 'none';
                 areaFaixas.style.display = 'block';
+
+                // PROCURA o primeiro produto correspondente para preencher as caixas de preço com a regra atual
+                const amostra = produtosBase.find(p => 
+                    (modalSelLinha.value === "TODAS" || p.linha === modalSelLinha.value) && 
+                    (modalSelGrupo.value === "TODOS" || p.grupo === modalSelGrupo.value)
+                );
+                
+                if (amostra) {
+                    document.getElementById('entrada-max').value = amostra.eMax.toFixed(2);
+                    document.getElementById('inter-max').value = amostra.iMax.toFixed(2);
+                    premiumLabel.innerText = amostra.iMax.toFixed(2);
+                }
             } else {
                 msgFiltros.style.display = 'block';
                 areaFaixas.style.display = 'none';
@@ -118,9 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const fLinhaModal = modalSelLinha.value;
         const fGrupoModal = modalSelGrupo.value;
 
-        const eMax = parseFloat(document.getElementById('entrada-max').value) || 0;
-        const iMax = parseFloat(document.getElementById('inter-max').value) || 0;
-
         // Filtragem Cruzada
         const filtrados = produtosBase.filter(p => {
             const matchColecao = fColecoes.includes(p.colecao);
@@ -142,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let cont = { e: 0, i: 0, p: 0 };
 
-        // Distribui Cards
+        // Distribui Cards com base nos limites próprios de cada produto (1/3, 2/3 ou salvos)
         filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
@@ -154,9 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="price">${p.preco.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
             `;
 
-            if (p.preco <= eMax) {
+            if (p.preco <= p.eMax) {
                 cols.entrada.appendChild(card); cont.e++;
-            } else if (p.preco <= iMax) {
+            } else if (p.preco <= p.iMax) {
                 cols.inter.appendChild(card); cont.i++;
             } else {
                 cols.premium.appendChild(card); cont.p++;
@@ -169,9 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mix-premium').innerText = cont.p;
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
         
-        document.getElementById('info-range-entrada').innerText = `Até R$ ${eMax.toFixed(2)}`;
-        document.getElementById('info-range-inter').innerText = `Até R$ ${iMax.toFixed(2)}`;
-        document.getElementById('info-range-premium').innerText = `Acima de R$ ${iMax.toFixed(2)}`;
+        document.getElementById('info-range-entrada').innerText = `Até 1/3 do Mix (Dinâmico)`;
+        document.getElementById('info-range-inter').innerText = `Até 2/3 do Mix (Dinâmico)`;
+        document.getElementById('info-range-premium').innerText = `Acima de 2/3 (Dinâmico)`;
     }
 
     // ==========================================
@@ -198,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 6. SALVAR FAIXAS NO BANCO DE DADOS
+    // 6. SALVAR FAIXAS NO BANCO DE DADOS E RECARREGAR
     // ==========================================
     btnSave.onclick = () => {
         const planoAtual = selPlano.value;
@@ -231,8 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.error) {
                 alert("Erro do Banco de Dados: " + data.error);
             } else {
-                atualizarKanban();
                 modal.style.display = 'none';
+                
+                // MÁGICA: Dispara o "change" no select. 
+                // Isso faz o JS refazer o "fetch" no banco de dados automaticamente!
+                selPlano.dispatchEvent(new Event('change'));
             }
         })
         .catch(err => {
