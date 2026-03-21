@@ -1,21 +1,26 @@
 document.addEventListener('DOMContentLoaded', () => {
     let produtosBase = []; 
 
-    // Elementos da Tela Principal
+    // --- ELEMENTOS DA TELA PRINCIPAL ---
     const selPlano = document.getElementById('filter-plano');
     const listColecao = document.getElementById('list-colecao');
     const listLinha = document.getElementById('list-linha');
     const listGrupo = document.getElementById('list-grupo');
 
-    // Elementos do Modal
+    // --- ELEMENTOS DO MODAL ---
     const modal = document.getElementById('configModal');
     const modalTitle = document.getElementById('modal-plano-title');
     const modalSelLinha = document.getElementById('modal-filter-linha');
     const modalSelGrupo = document.getElementById('modal-filter-grupo');
     const interMaxInput = document.getElementById('inter-max');
     const premiumLabel = document.getElementById('premium-min-label');
+    const msgFiltros = document.getElementById('msg-selecione-filtros');
+    const areaFaixas = document.getElementById('config-faixas-area');
+    const btnSave = document.getElementById('btn-save-ranges');
 
-    // --- BUSCAR DADOS QUANDO MUDAR O PLANO ---
+    // ==========================================
+    // 1. BUSCAR DADOS QUANDO MUDAR O PLANO
+    // ==========================================
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
         if (!plano) {
@@ -26,24 +31,20 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
             .then(res => res.json())
             .then(data => {
-                console.log("Dados recebidos do banco:", data); // Para debug no F12
-                
                 produtosBase = data.map(p => ({
                     ref: p.referencia || 'N/A',
                     desc: p.descricao || '',
                     colecao: p.colecao || 'GERAL',
                     linha: p.linha || 'GERAL',
                     grupo: p.grupo || 'GERAL',
-                    // Garante que pega o preço, não importa se o Postgres enviou precoB2B ou precob2b
                     preco: parseFloat(p.precoB2B || p.precob2b || p.preco) || 0 
                 }));
 
-                // O Segredo: Popula as checkboxes do cabeçalho e os selects do modal
                 gerarFiltrosCheckboxes();
                 popularSelectsModal();
                 
                 atualizarKanban();
-                document.getElementById('last-sync').innerText = new Date().toLocaleTimeString();
+                document.getElementById('last-sync').innerText = new Date().toLocaleTimeString('pt-BR');
             })
             .catch(err => {
                 console.error("Erro Crítico ao buscar dados:", err);
@@ -51,7 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    // --- CRIAR AS CHECKBOXES (Menus Suspensos) ---
+    // ==========================================
+    // 2. CRIAR AS CHECKBOXES (MENUS SUSPENSOS)
+    // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
 
@@ -71,46 +74,65 @@ document.addEventListener('DOMContentLoaded', () => {
         preencher(listGrupo, unique('grupo'));
     }
 
-    // --- POPULAR O MODAL (Selects únicos) ---
+    // ==========================================
+    // 3. LÓGICA DO MODAL (POPULAR E ESCONDER)
+    // ==========================================
     function popularSelectsModal() {
         const uniqueLinhas = [...new Set(produtosBase.map(p => p.linha))].sort();
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
 
-        modalSelLinha.innerHTML = '<option value="">TODAS AS LINHAS</option>' + 
+        // Adiciona um valor vazio bloqueado para obrigar o clique
+        modalSelLinha.innerHTML = '<option value="" disabled selected>Selecione a Linha...</option><option value="TODAS">TODAS AS LINHAS</option>' + 
             uniqueLinhas.map(l => `<option value="${l}">${l}</option>`).join('');
         
-        modalSelGrupo.innerHTML = '<option value="">TODOS OS GRUPOS</option>' + 
+        modalSelGrupo.innerHTML = '<option value="" disabled selected>Selecione o Grupo...</option><option value="TODOS">TODOS OS GRUPOS</option>' + 
             uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
 
-    // --- LÓGICA MESTRA DO KANBAN ---
+    // Esconde a área de faixas até que Linha e Grupo sejam escolhidos
+    function verificarSelecaoModal() {
+        if (msgFiltros && areaFaixas) {
+            if (modalSelLinha.value !== "" && modalSelGrupo.value !== "") {
+                msgFiltros.style.display = 'none';
+                areaFaixas.style.display = 'block';
+            } else {
+                msgFiltros.style.display = 'block';
+                areaFaixas.style.display = 'none';
+            }
+        }
+    }
+
+    // Escuta as mudanças nos selects do modal
+    modalSelLinha.addEventListener('change', verificarSelecaoModal);
+    modalSelGrupo.addEventListener('change', verificarSelecaoModal);
+
+    // ==========================================
+    // 4. LÓGICA MESTRA DO KANBAN
+    // ==========================================
     function atualizarKanban() {
-        // 1. Pega os valores marcados nos Checkboxes superiores
         const getChecked = (container) => Array.from(container.querySelectorAll('input:checked')).map(c => c.value);
         const fColecoes = getChecked(listColecao);
         const fLinhasHeader = getChecked(listLinha);
         const fGruposHeader = getChecked(listGrupo);
 
-        // 2. Pega os valores selecionados no Modal
         const fLinhaModal = modalSelLinha.value;
         const fGrupoModal = modalSelGrupo.value;
 
-        // 3. Faixas de Preço
         const eMax = parseFloat(document.getElementById('entrada-max').value) || 0;
         const iMax = parseFloat(document.getElementById('inter-max').value) || 0;
 
-        // 4. Filtragem Cruzada
+        // Filtragem Cruzada
         const filtrados = produtosBase.filter(p => {
             const matchColecao = fColecoes.includes(p.colecao);
             
-            // Se o modal estiver em 'TODAS', respeita as checkboxes. Se não, força a linha do modal.
-            const matchLinha = (fLinhaModal === "") ? fLinhasHeader.includes(p.linha) : (p.linha === fLinhaModal);
-            const matchGrupo = (fGrupoModal === "") ? fGruposHeader.includes(p.grupo) : (p.grupo === fGrupoModal);
+            // Se o modal estiver em 'TODAS' ou vazio, respeita as checkboxes. Se não, força a linha do modal.
+            const matchLinha = (!fLinhaModal || fLinhaModal === "TODAS") ? fLinhasHeader.includes(p.linha) : (p.linha === fLinhaModal);
+            const matchGrupo = (!fGrupoModal || fGrupoModal === "TODOS") ? fGruposHeader.includes(p.grupo) : (p.grupo === fGrupoModal);
             
             return matchColecao && matchLinha && matchGrupo;
         });
 
-        // 5. Limpa Colunas
+        // Limpa Colunas
         const cols = {
             entrada: document.getElementById('cards-entrada'),
             inter: document.getElementById('cards-inter'),
@@ -120,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let cont = { e: 0, i: 0, p: 0 };
 
-        // 6. Distribui Cards
+        // Distribui Cards
         filtrados.forEach(p => {
             const card = document.createElement('div');
             card.className = 'card';
@@ -141,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 7. Atualiza Painéis
+        // Atualiza Painéis e Legendas
         document.getElementById('mix-entrada').innerText = cont.e;
         document.getElementById('mix-inter').innerText = cont.i;
         document.getElementById('mix-premium').innerText = cont.p;
@@ -152,11 +174,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('info-range-premium').innerText = `Acima de R$ ${iMax.toFixed(2)}`;
     }
 
-    // --- CONTROLES DA INTERFACE ---
+    // ==========================================
+    // 5. CONTROLES DE INTERFACE (BOTÕES)
+    // ==========================================
     document.getElementById('btn-config').onclick = () => {
         const plano = selPlano.value;
-        modalTitle.innerText = plano ? "Plano: " + plano : "⚠️ Selecione o plano primeiro";
+        modalTitle.innerText = plano ? "Configurando: " + plano : "⚠️ Selecione o plano primeiro";
         modalTitle.style.color = plano ? "var(--green-primary)" : "red";
+        
+        // Reseta o modal toda vez que ele abre
+        modalSelLinha.value = "";
+        modalSelGrupo.value = "";
+        verificarSelecaoModal();
+
         modal.style.display = 'block';
     };
 
@@ -167,8 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
         premiumLabel.innerText = interMaxInput.value;
     });
 
-    // --- BOTÃO SALVAR FAIXAS (COM ENVIO PARA O BANCO) ---
-    document.getElementById('btn-save-ranges').onclick = () => {
+    // ==========================================
+    // 6. SALVAR FAIXAS NO BANCO DE DADOS
+    // ==========================================
+    btnSave.onclick = () => {
         const planoAtual = selPlano.value;
         
         if (!planoAtual) {
@@ -176,29 +208,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 1. Pega os botões e altera o texto para mostrar que está carregando
-        const btnSave = document.getElementById('btn-save-ranges');
         const textoOriginal = btnSave.innerText;
         btnSave.innerText = "Salvando...";
         btnSave.disabled = true;
 
-        // 2. Monta o pacote de dados
         const payload = {
             plano: planoAtual,
             linha: modalSelLinha.value,
             grupo: modalSelGrupo.value,
             valorEntrada: document.getElementById('entrada-max').value,
             valorInter: document.getElementById('inter-max').value,
-            // Premium é tudo acima do Intermediário
             valorPremium: document.getElementById('inter-max').value 
         };
 
-        // 3. Envia os dados para o servidor PHP
         fetch('salvar_faixas.php', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
         .then(res => res.json())
@@ -206,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.error) {
                 alert("Erro do Banco de Dados: " + data.error);
             } else {
-                // Se deu sucesso, atualiza o Kanban e fecha o modal
                 atualizarKanban();
                 modal.style.display = 'none';
             }
@@ -216,12 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Falha ao comunicar com o servidor.");
         })
         .finally(() => {
-            // Devolve o botão ao normal, independentemente de dar erro ou sucesso
             btnSave.innerText = textoOriginal;
             btnSave.disabled = false;
         });
     };
 
+    // ==========================================
+    // 7. FUNÇÃO AUXILIAR
+    // ==========================================
     function limparFiltros() {
         produtosBase = [];
         listColecao.innerHTML = '';
