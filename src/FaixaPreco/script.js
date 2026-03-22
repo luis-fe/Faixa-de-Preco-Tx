@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let backupFiltros = null;
     let chartInstance = null; 
     
+    // --- ESTADO DO POWER BI (Filtro Cruzado da Tabela) ---
+    let linhaSelecionadaPBI = null; 
+
     let currentSyncTime = '--:--';
     let pollingInterval = null;
 
@@ -19,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const listLinha = document.getElementById('list-linha');
     const listGrupo = document.getElementById('list-grupo');
     const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
+    const filtroTabelaGrupo = document.getElementById('filtro-tabela-grupo'); // Novo Select
 
     const modalConfig = document.getElementById('configModal');
     const modalSelGrupo = document.getElementById('modal-filter-grupo');
@@ -54,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tabPiramide.classList.add('active');
         tabKanban.classList.remove('active');
         viewKanban.style.display = 'none';
-        viewPiramide.style.display = 'flex'; // Mudado para Flex por causa do layout
+        viewPiramide.style.display = 'flex'; 
         
         if (chartInstance) {
             chartInstance.resize();
@@ -62,9 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    toggleTipoPreco.addEventListener('change', () => {
-        atualizarKanban();
-    });
+    toggleTipoPreco.addEventListener('change', () => { atualizarKanban(); });
+    filtroTabelaGrupo.addEventListener('change', () => { atualizarKanban(); });
 
     // ==========================================
     // 1. BUSCAR DADOS
@@ -75,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pollingInterval) clearInterval(pollingInterval);
         lblLastSync.innerText = "Carregando...";
+        linhaSelecionadaPBI = null; // Reseta o clique da tabela ao mudar de plano
 
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}&_=${Date.now()}`)
             .then(res => res.json())
@@ -149,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. MATRIZ DE RESUMO KANBAN (Botão Resumo Mix)
+    // 3. MATRIZ DE RESUMO KANBAN
     // ==========================================
     btnAbrirResumo.onclick = () => {
         if (produtosBase.length === 0) { alert("Selecione um plano primeiro!"); return; }
@@ -357,6 +361,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 5. LÓGICA MESTRA DO KANBAN E TAGS
     // ==========================================
+    
+    // Função Global chamada ao clicar numa linha da tabela
+    window.toggleLinhaPBI = (grupo, linha) => {
+        if (linhaSelecionadaPBI && linhaSelecionadaPBI.grupo === grupo && linhaSelecionadaPBI.linha === linha) {
+            linhaSelecionadaPBI = null; // Clicou na mesma linha? Desfaz o filtro
+        } else {
+            linhaSelecionadaPBI = { grupo, linha }; // Aplica o novo filtro
+        }
+        atualizarKanban();
+    };
+
     function atualizarKanban() {
         if (!selPlano.value) return; 
 
@@ -370,28 +385,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const effCol = fCol.filter(x => validCol.has(x)), effLin = fLin.filter(x => validLin.has(x)), effGru = fGru.filter(x => validGru.has(x));
 
+        const updateVis = (cont, vSet) => { cont.querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
+        updateVis(listColecao, validCol); updateVis(listLinha, validLin); updateVis(listGrupo, validGru);
+
+        // 1. Filtrados Gerais (Baseado APENAS nos Checkboxes do Cabeçalho)
+        let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
+        
+        // A Tabela Lateral não some com os dados, ela mostra tudo e destaca a linha!
+        atualizarTabelaLateral(filtradosGerais);
+
+        // 2. Afunilamento Power BI (Aplica a seleção da Tabela sobre os dados)
+        let filtradosParaVisuais = filtradosGerais;
+        
         const setSub = (id, arr) => {
             const el = document.getElementById(id);
             if (arr.length === 1) el.innerText = `(${arr[0]})`; else if (arr.length > 1) el.innerText = `(...)`; else el.innerText = `(Nenhum)`;
         };
-        setSub('sub-colecao', effCol); setSub('sub-linha', effLin); setSub('sub-grupo', effGru);
 
-        const updateVis = (cont, vSet) => { cont.querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
-        updateVis(listColecao, validCol); updateVis(listLinha, validLin); updateVis(listGrupo, validGru);
+        if (linhaSelecionadaPBI) {
+            filtradosParaVisuais = filtradosGerais.filter(p => p.grupo === linhaSelecionadaPBI.grupo && p.linha === linhaSelecionadaPBI.linha);
+            // Mostra no cabeçalho o que está filtrado pelo clique
+            setSub('sub-linha', [linhaSelecionadaPBI.linha]);
+            setSub('sub-grupo', [linhaSelecionadaPBI.grupo]);
+            setSub('sub-colecao', [...new Set(filtradosParaVisuais.map(p => p.colecao))]);
+        } else {
+            setSub('sub-linha', effLin);
+            setSub('sub-grupo', effGru);
+            setSub('sub-colecao', effCol);
+        }
 
-        let filtrados = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
-        
-        filtrados.sort((a, b) => a.preco - b.preco);
+        filtradosParaVisuais.sort((a, b) => a.preco - b.preco);
 
-        // Chama as funções da nova tela Pirâmide
-        renderizarGraficoPiramide(filtrados, analisarB2C);
-        atualizarTabelaLateral(filtrados);
+        // Chama as funções da nova tela Pirâmide com os dados afunilados
+        renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C);
 
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
         Object.values(cols).forEach(c => c.innerHTML = '');
         let cont = { e: 0, i: 0, p: 0 };
 
-        filtrados.forEach(p => {
+        filtradosParaVisuais.forEach(p => {
             const card = document.createElement('div'); card.className = 'card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
@@ -421,14 +453,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.getElementById('mix-entrada').innerText = cont.e; document.getElementById('mix-inter').innerText = cont.i; document.getElementById('mix-premium').innerText = cont.p;
-        document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
+        
+        // Se houver clique do PBI, mostra quantos itens tem naquele filtro específico no painel principal
+        if (linhaSelecionadaPBI) {
+            document.getElementById('total-mix').innerText = `${cont.e + cont.i + cont.p} (Filtrado)`;
+        } else {
+            document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
+        }
 
         const rangeE = document.getElementById('info-range-entrada'), rangeI = document.getElementById('info-range-inter'), rangeP = document.getElementById('info-range-premium');
         
-        if (effLin.length === 1 && effGru.length === 1 && filtrados.length > 0) {
-            rangeE.innerText = `Até R$ ${filtrados[0].eMax.toFixed(2)}`; 
-            rangeI.innerText = `R$ ${(filtrados[0].eMax + 0.01).toFixed(2)} - R$ ${filtrados[0].iMax.toFixed(2)}`; 
-            rangeP.innerText = `Acima de R$ ${filtrados[0].iMax.toFixed(2)}`;
+        if (filtradosParaVisuais.length > 0 && new Set(filtradosParaVisuais.map(p=>p.linha)).size === 1 && new Set(filtradosParaVisuais.map(p=>p.grupo)).size === 1) {
+            rangeE.innerText = `Até R$ ${filtradosParaVisuais[0].eMax.toFixed(2)}`; 
+            rangeI.innerText = `R$ ${(filtradosParaVisuais[0].eMax + 0.01).toFixed(2)} - R$ ${filtradosParaVisuais[0].iMax.toFixed(2)}`; 
+            rangeP.innerText = `Acima de R$ ${filtradosParaVisuais[0].iMax.toFixed(2)}`;
             rangeE.style.display = rangeI.style.display = rangeP.style.display = 'block';
         } else { 
             rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none'; 
@@ -438,39 +476,57 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 6. FUNÇÕES DA TELA PIRÂMIDE (Gráfico e Tabela Lateral)
     // ==========================================
-    function atualizarTabelaLateral(filtrados) {
+    function atualizarTabelaLateral(filtradosGerais) {
+        const filtroSelect = document.getElementById('filtro-tabela-grupo').value;
         const tbody = document.querySelector('#side-summary-table tbody');
         
-        // Agrupa os produtos que estão no filtro por Grupo e Linha
+        // Agrupa os produtos por Grupo e Linha
         const mapa = {};
-        filtrados.forEach(p => {
+        filtradosGerais.forEach(p => {
+            // Aplica o filtro do <select> acima da tabela
+            if (filtroSelect !== 'TODOS' && p.grupo !== filtroSelect) return;
+
             const key = p.grupo + '|' + p.linha;
             if (!mapa[key]) mapa[key] = { grupo: p.grupo, linha: p.linha, total: 0 };
             mapa[key].total++;
         });
 
-        // Transforma em array e ordena (Alfabético por Grupo, depois Linha)
         const arrayResumo = Object.values(mapa);
         arrayResumo.sort((a, b) => a.grupo.localeCompare(b.grupo) || a.linha.localeCompare(b.linha));
 
-        // Desenha as linhas na tabela HTML
-        tbody.innerHTML = arrayResumo.map(item => `
-            <tr>
+        // Renderiza a tabela aplicando o estilo visual Power BI
+        tbody.innerHTML = arrayResumo.map(item => {
+            let classeCSS = '';
+            
+            if (linhaSelecionadaPBI) {
+                if (linhaSelecionadaPBI.grupo === item.grupo && linhaSelecionadaPBI.linha === item.linha) {
+                    classeCSS = 'selected'; // Realça!
+                } else {
+                    classeCSS = 'dimmed'; // Apaga as outras
+                }
+            }
+
+            // Escapa aspas simples para não quebrar a função onclick
+            const escG = item.grupo.replace(/'/g, "\\'");
+            const escL = item.linha.replace(/'/g, "\\'");
+
+            return `
+            <tr class="${classeCSS}" onclick="toggleLinhaPBI('${escG}', '${escL}')">
                 <td>${item.grupo}</td>
                 <td><strong>${item.linha}</strong></td>
                 <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
-    function renderizarGraficoPiramide(filtrados, analisarB2C) {
+    function renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C) {
         const ctx = document.getElementById('graficoPiramide').getContext('2d');
 
         const tituloGrafico = analisarB2C ? 'Preço B2c x Nº Produtos' : 'Preço B2b x Nº Produtos';
         const chavePrecoAtiva = analisarB2C ? 'precoB2C' : 'preco';
 
         const contagemPorPreco = {};
-        filtrados.forEach(p => {
+        filtradosParaVisuais.forEach(p => {
             const valorPreco = p[chavePrecoAtiva];
             if (!valorPreco || valorPreco <= 0) return;
 
@@ -490,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.font = "16px sans-serif";
             ctx.fillStyle = "#888";
             ctx.textAlign = "center";
-            ctx.fillText("Sem dados para exibir", ctx.canvas.width/2, ctx.canvas.height/2);
+            ctx.fillText("Nenhum dado selecionado", ctx.canvas.width/2, ctx.canvas.height/2);
             return;
         }
 
@@ -500,11 +556,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: labelsComSifrao,
                 datasets: [{
                     data: dados,
-                    backgroundColor: '#25382D', // SEMPRE VERDE ESCURO
-                    borderColor: '#4CAF50',
-                    borderWidth: 1,
+                    backgroundColor: '#4CAF50', // Gráfico SEMPRE verde médio
+                    borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage: 0.8, 
+                    barPercentage: 0.85, 
                     categoryPercentage: 0.9
                 }]
             },
@@ -518,19 +573,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         display: true,
                         text: tituloGrafico,
                         color: '#25382D',
-                        font: { size: 16, weight: 'bold', family: 'Segoe UI' },
+                        font: { size: 15, weight: 'bold', family: 'Segoe UI' },
                         padding: { bottom: 15 }
                     },
                     legend: { display: false },
                     
                     // --- REGRAS DOS RÓTULOS (DENTRO DA BARRA) ---
                     datalabels: {
-                        // Se for B2C o texto fica branco com fundo roxo (tipo uma tag) para não sumir no verde escuro. 
-                        // Se for B2B fica apenas o texto branco puro.
                         color: '#fff', 
-                        backgroundColor: analisarB2C ? '#673AB7' : null, 
+                        // Se for B2C, a "etiqueta" do número fica Roxa! Se não, Verde Escuro.
+                        backgroundColor: analisarB2C ? '#673AB7' : '#25382D', 
                         borderRadius: 4,
-                        padding: analisarB2C ? 4 : 0,
+                        padding: 4,
                         anchor: 'center', 
                         align: 'center',  
                         font: { weight: 'bold', size: 12, family: 'Segoe UI' },
@@ -542,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         bodyFont: { size: 12 },
                         callbacks: {
                             title: function(context) { return 'Preço: ' + context[0].label; },
-                            label: function(context) { return context.raw + ' produtos sugeridos'; }
+                            label: function(context) { return context.raw + ' produtos encontrados'; }
                         }
                     }
                 },
@@ -563,7 +617,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     function popularGrupoModal() {
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
+        
+        // Popula Configurar Faixas
         modalSelGrupo.innerHTML = '<option value="" disabled selected>Selecione...</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
+        
+        // Popula Tabela Lateral da Pirâmide
+        const selTabelaGrupo = document.getElementById('filtro-tabela-grupo');
+        const grupoAtualTabela = selTabelaGrupo.value; // Guarda o que estava marcado
+        selTabelaGrupo.innerHTML = '<option value="TODOS">TODOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
+        if (uniqueGrupos.includes(grupoAtualTabela)) selTabelaGrupo.value = grupoAtualTabela;
     }
 
     modalSelGrupo.addEventListener('change', () => {
@@ -618,7 +680,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.select-all').forEach(chk => chk.checked = true);
         document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
         document.getElementById('resumo-filter-grupo').value = 'TODOS';
+        document.getElementById('filtro-tabela-grupo').value = 'TODOS';
         toggleTipoPreco.checked = false; 
+        linhaSelecionadaPBI = null; // Remove a seleção do PBI também
         atualizarKanban();
     });
 
@@ -638,5 +702,5 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.onclick = (e) => { if (e.target == modalConfig) modalConfig.style.display = 'none'; if (e.target == modalSummary) modalSummary.style.display = 'none'; };
-    function limparFiltros() { produtosBase = []; atualizarKanban(); }
+    function limparFiltros() { produtosBase = []; linhaSelecionadaPBI = null; atualizarKanban(); }
 });

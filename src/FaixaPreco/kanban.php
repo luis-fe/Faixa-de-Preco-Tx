@@ -23,7 +23,7 @@ require_once __DIR__ . '/../../db.php';
             --green-light: #E8F5E9;
             --green-medium: #4CAF50;
             --white: #FFFFFF;
-            --purple-b2c: #673AB7; /* Cor para identificar B2C */
+            --purple-b2c: #673AB7; 
         }
 
         body {
@@ -44,7 +44,6 @@ require_once __DIR__ . '/../../db.php';
             position: relative; z-index: 100;
         }
 
-        /* NAVEGAÇÃO SUPERIOR */
         .top-nav {
             background-color: var(--white);
             padding: 3px 20px; 
@@ -80,7 +79,6 @@ require_once __DIR__ . '/../../db.php';
             font-weight: bold; cursor: pointer; font-size: 0.85em;
         }
 
-        /* Dropdowns Suspensos */
         .multiselect-container { position: relative; display: inline-block; min-width: 160px; }
         .select-box {
             background-color: var(--white); color: var(--green-primary);
@@ -130,7 +128,6 @@ require_once __DIR__ . '/../../db.php';
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        /* --- COR DOS CABEÇALHOS DO KANBAN VOLTOU PARA O VERDE MÉDIO --- */
         .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-primary); }
         .kanban-header h3 { margin: 0 0 3px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }
         .range-info { font-size: 0.75em; opacity: 0.9; display: block; margin-bottom: 3px; color: #fff;}
@@ -167,10 +164,10 @@ require_once __DIR__ . '/../../db.php';
         }
 
         /* ==========================================
-           VISÃO PIRÂMIDE (Layout Dividido Esquerda/Direita)
+           VISÃO PIRÂMIDE E TABELA LATERAL
            ========================================== */
         #piramide-view {
-            display: none; /* É trocado para flex pelo JS */
+            display: none; 
             flex-direction: row;
             gap: 20px;
             margin: 15px 20px;
@@ -183,17 +180,15 @@ require_once __DIR__ . '/../../db.php';
             box-sizing: border-box;
         }
 
-        /* Painel Esquerdo (Gráfico e Botão) */
         .piramide-left {
-            flex: 6.5; /* Ocupa 65% do espaço */
+            flex: 6.5; 
             display: flex;
             flex-direction: column;
             height: 100%;
         }
 
-        /* Painel Direito (Tabela Nova) */
         .piramide-right {
-            flex: 3.5; /* Ocupa 35% do espaço */
+            flex: 3.5; 
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -201,10 +196,9 @@ require_once __DIR__ . '/../../db.php';
             padding-left: 15px;
         }
 
-        /* Área do Botão Seletor (Toggle) */
         .chart-controls {
             display: flex;
-            justify-content: flex-start; /* <-- ALINHADO À ESQUERDA AQUI */
+            justify-content: flex-start; 
             align-items: center;
             margin-bottom: 10px;
             padding-bottom: 10px;
@@ -236,11 +230,19 @@ require_once __DIR__ . '/../../db.php';
         
         .chart-canvas-wrapper { width: 100%; flex-grow: 1; position: relative; }
 
-        /* Estilo da Nova Tabela Lateral */
+        /* Estilo da Nova Tabela Lateral (E Efeito Power BI) */
         #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444;}
         #side-summary-table td { padding: 6px 8px; border-bottom: 1px solid #eee; }
-        #side-summary-table tbody tr:hover { background-color: #e8f5e9; }
+        
+        /* Efeitos de clique da linha */
+        #side-summary-table tbody tr { cursor: pointer; transition: 0.2s; }
+        #side-summary-table tbody tr:hover { background-color: #f1f8e9; }
+        #side-summary-table tbody tr.dimmed { opacity: 0.35; }
+        #side-summary-table tbody tr.selected { 
+            background-color: var(--green-light); 
+            border-left: 4px solid var(--green-primary); 
+        }
 
         /* Estilos de Modais */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
@@ -357,9 +359,14 @@ require_once __DIR__ . '/../../db.php';
         </div>
 
         <div class="piramide-right">
-            <h3 style="margin-top: 0; color: var(--green-primary); font-size: 1em; text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px solid var(--green-primary); padding-bottom: 5px;">
-                Tabela de Produtos
-            </h3>
+            
+            <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary);">GRUPO:</label>
+                <select id="filtro-tabela-grupo" style="flex-grow: 1; padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; font-size: 0.85em;">
+                    <option value="TODOS">TODOS</option>
+                </select>
+            </div>
+
             <div style="overflow-y: auto; flex-grow: 1;">
                 <table id="side-summary-table">
                     <thead>
