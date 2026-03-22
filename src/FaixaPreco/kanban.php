@@ -85,6 +85,14 @@ require_once __DIR__ . '/../../db.php';
             cursor: pointer; border-radius: 4px; font-weight: bold;
         }
 
+        /* Botão Discreto de Limpar */
+        #btn-limpar-filtros {
+            background: none; border: none; color: var(--green-light);
+            text-decoration: underline; cursor: pointer; font-size: 0.85em;
+            padding: 5px; opacity: 0.9;
+        }
+        #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
+
         /* Kanban Board */
         .kanban-board { display: flex; gap: 20px; padding: 20px; height: calc(100vh - 140px); }
         .kanban-column {
@@ -118,14 +126,14 @@ require_once __DIR__ . '/../../db.php';
         .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
         .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
-        /* TAG DINÂMICA (Menor e Ajustada) */
+        /* TAG DINÂMICA */
         .subcolecao-badge {
             position: absolute;
             bottom: 0;
             right: 0;
-            font-size: 0.68em; /* Diminuída de 0.75 */
+            font-size: 0.68em; 
             font-weight: bold;
-            padding: 3px 8px; /* Mais fina */
+            padding: 3px 8px; 
             border-top-left-radius: 6px; 
             letter-spacing: 0.5px;
             text-transform: uppercase;
@@ -194,6 +202,8 @@ require_once __DIR__ . '/../../db.php';
 
             <button class="btn" id="btn-config">Configurar Faixas</button>
             <button class="btn" id="btn-resumo">Resumo do Mix</button> 
+
+            <button id="btn-limpar-filtros" title="Limpar todos os filtros">Limpar Filtros</button>
         </div>
         <div class="global-indicator">Mix Total: <span id="total-mix">0</span></div>
     </div>

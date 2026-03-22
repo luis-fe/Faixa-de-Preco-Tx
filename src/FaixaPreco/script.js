@@ -90,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (bdSync !== '--:--' && bdSync !== currentSyncTime) {
                         if (modalConfig.style.display === 'block') return;
 
-                        // Salva o backup dos filtros incluindo o estado do "Selecionar Tudo"
                         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
                         backupFiltros = { 
                             col: getChecked('list-colecao'), colAll: document.querySelector('#list-colecao .select-all').checked,
@@ -268,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. CHECKBOXES DO KANBAN (COM CORREÇÃO DE ARMADILHA)
+    // 4. CHECKBOXES DO KANBAN 
     // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
@@ -280,13 +279,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const chkItems = container.querySelectorAll('.item-checkbox');
 
             chkAll.addEventListener('change', (e) => {
-                // CORREÇÃO: "Selecionar Tudo" agora marca/desmarca TODOS, mesmo os invisíveis, quebrando a armadilha do filtro
                 chkItems.forEach(chk => chk.checked = e.target.checked);
                 atualizarKanban();
             });
 
             chkItems.forEach(chk => chk.addEventListener('change', () => {
-                // Atualiza o checkbox pai baseado no que está visível
                 const visiveis = Array.from(chkItems).filter(c => c.closest('label').style.display !== 'none');
                 chkAll.checked = visiveis.every(c => c.checked);
                 atualizarKanban();
@@ -304,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let allChecked = true;
             
             checkboxes.forEach(chk => {
-                // CORREÇÃO: Se estava com "Selecionar Tudo", marca as linhas novas que vieram do banco
                 if (wasAllChecked) {
                     chk.checked = true;
                 } else {
@@ -451,7 +447,22 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSave.innerText = "Salvar Todas as Faixas do Grupo"; btnSave.disabled = false;
     };
 
-    // CONTROLES
+    // ==========================================
+    // 7. CONTROLES GERAIS E BOTÃO LIMPAR FILTROS
+    // ==========================================
+    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+        if (!selPlano.value) return; // Se não tem plano selecionado, não faz nada
+        
+        // Marca o "Selecionar Tudo" e todos os itens (visíveis ou invisíveis)
+        document.querySelectorAll('.select-all').forEach(chk => chk.checked = true);
+        document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
+        
+        // Se a pessoa limpou pela tela principal, reseta o filtro do Modal Matriz também
+        document.getElementById('resumo-filter-grupo').value = 'TODOS';
+        
+        atualizarKanban();
+    });
+
     document.getElementById('close-modal').onclick = () => modalConfig.style.display = 'none';
     document.getElementById('close-summary').onclick = () => modalSummary.style.display = 'none';
     document.getElementById('btn-config').onclick = () => {
