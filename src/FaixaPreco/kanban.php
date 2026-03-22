@@ -100,14 +100,14 @@ require_once __DIR__ . '/../../db.php';
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
         }
         
-        /* CARD (ATUALIZADO PARA SUPORTAR A TAG) */
+        /* CARD (Com Tag Menor) */
         .card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
-            padding: 10px; padding-bottom: 22px; /* Espaço extra embaixo para a tag não cobrir o preço */
+            padding: 10px; padding-bottom: 22px; 
             border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-height: 90px; justify-content: space-between;
             overflow: hidden; word-wrap: break-word;
-            position: relative; /* OBRIGATÓRIO: Mantém a tag presa dentro do card */
+            position: relative; 
         }
         .card .info-container { display: flex; flex-direction: column; gap: 2px; }
         .card .ref-code { font-size: 0.9em; color: #222; font-weight: bold; display: block; }
@@ -118,17 +118,17 @@ require_once __DIR__ . '/../../db.php';
         .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
         .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
-        /* NOVA TAG DE SUBCOLEÇÃO (Estilo da Imagem) */
+        /* TAG DINÂMICA (Menor e Ajustada) */
         .subcolecao-badge {
             position: absolute;
             bottom: 0;
             right: 0;
-            background-color: #757575; /* Cinza */
-            color: #ffffff;
-            font-size: 0.75em;
-            padding: 4px 10px;
-            border-top-left-radius: 6px; /* Curva apenas na ponta superior esquerda */
+            font-size: 0.68em; /* Diminuída de 0.75 */
+            font-weight: bold;
+            padding: 3px 8px; /* Mais fina */
+            border-top-left-radius: 6px; 
             letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
         /* Estilos de Modais */
@@ -150,7 +150,7 @@ require_once __DIR__ . '/../../db.php';
         #table-resumo tbody tr:nth-child(even) { background-color: #f9f9f9; }
         #table-resumo tbody tr:hover { background-color: #e8f5e9; }
 
-        /* LINKS DOS NÚMEROS DA MATRIZ */
+        /* LINKS DA MATRIZ */
         .matrix-link { color: var(--green-primary); text-decoration: underline; cursor: pointer; font-weight: bold; display: block; }
         .matrix-link:hover { color: #1b5e20; background: rgba(76, 175, 80, 0.1); border-radius: 4px; }
         .matrix-link-white { color: white; text-decoration: underline; cursor: pointer; font-weight: bold; display: block; }

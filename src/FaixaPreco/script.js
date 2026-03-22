@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return {
                         ref: p.referencia || 'N/A', desc: p.descricao || '', 
                         colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: p.grupo || 'GERAL',
-                        subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', // Busca a subcoleção do banco
+                        subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', 
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, eMax: parseFloat(p.faixa_entrada_max) || 0, iMax: parseFloat(p.faixa_inter_max) || 0
                     };
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. LÓGICA MESTRA DO KANBAN E BI
+    // 4. LÓGICA MESTRA DO KANBAN E TAGS DE CORES
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -281,10 +281,31 @@ document.addEventListener('DOMContentLoaded', () => {
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkt: ${p.mkp.toFixed(2)}</span>` : '';
 
-            // --- CORREÇÃO DA TAG AQUI ---
-            // Se tiver subcoleção mostra ela, senão mostra a coleção
+            // --- LÓGICA DE CORES DA TAG ---
             let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
-            let badgeHtml = nomeTag ? `<div class="subcolecao-badge">${nomeTag}</div>` : '';
+            let badgeHtml = '';
+            
+            if (nomeTag) {
+                let txtMinusculo = nomeTag.toLowerCase();
+                let corFundo = '#757575'; // Default: Cinza
+                let corTexto = '#ffffff'; // Default: Branco
+                
+                if (txtMinusculo.includes('starter') || txtMinusculo.includes('estoque futuro')) {
+                    corFundo = '#9E9E9E'; // Cinza
+                } else if (txtMinusculo.includes('lancamento') || txtMinusculo.includes('lançamento')) {
+                    // Amarelo um pouco mais escuro para a letra branca aparecer bem
+                    corFundo = '#FBC02D'; 
+                    corTexto = '#ffffff';
+                } else if (txtMinusculo.includes('reedicao') || txtMinusculo.includes('reedição')) {
+                    corFundo = '#4CAF50'; // Verde
+                    corTexto = '#ffffff';
+                } else if (txtMinusculo.includes('best') || txtMinusculo.includes('saller') || txtMinusculo.includes('seller')) {
+                    corFundo = '#FF9800'; // Laranja
+                    corTexto = '#ffffff';
+                }
+
+                badgeHtml = `<div class="subcolecao-badge" style="background-color: ${corFundo}; color: ${corTexto};">${nomeTag}</div>`;
+            }
 
             card.innerHTML = `<div class="info-container"><span class="ref-code">${p.ref}</span><span class="description">${p.desc}</span></div>
                 <div class="price-container"><div class="b2b-row"><span class="price">R$ ${p.preco.toFixed(2)}</span>${mkpHtml}</div>${b2cHtml}</div>
