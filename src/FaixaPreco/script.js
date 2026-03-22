@@ -2,10 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let produtosBase = []; 
     let colecoesAtuais = []; 
     let dadosMatriz = []; 
+    // Inicia o estado padrão, mas agora ele será lembrado ao fechar o modal
     let sortConfig = { key: 'padrao', dir: 'desc' };
     let modoColecao = false;
     let backupFiltros = null;
-    
+
     // --- VARIÁVEIS DO TEMPO REAL (POLLING) ---
     let currentSyncTime = '--:--';
     let pollingInterval = null;
@@ -37,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const plano = selPlano.value;
         if (!plano) { limparFiltros(); return; }
 
-        // Limpa o monitoramento anterior se mudar de plano
         if (pollingInterval) clearInterval(pollingInterval);
         lblLastSync.innerText = "Carregando...";
 
@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 gerarFiltrosCheckboxes();
 
-                // RESTAURA OS FILTROS SE FOR UMA ATUALIZAÇÃO AUTOMÁTICA
                 if (backupFiltros) {
                     restaurarFiltros(backupFiltros);
                     backupFiltros = null; 
@@ -69,8 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 popularGrupoModal();
                 atualizarKanban();
-                
-                // Inicia o monitoramento de atualizações para este plano
                 iniciarPolling(plano);
             });
     });
@@ -79,13 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. SISTEMA DE TEMPO REAL (POLLING)
     // ==========================================
     function iniciarPolling(plano) {
-        // 1. Busca a data inicial para preencher o rodapé
         verificarSync(plano, true);
-        
-        // 2. Fica escutando o banco a cada 10 segundos
-        pollingInterval = setInterval(() => {
-            verificarSync(plano, false);
-        }, 10000); 
+        pollingInterval = setInterval(() => { verificarSync(plano, false); }, 10000); 
     }
 
     function verificarSync(plano, isInitial) {
@@ -93,33 +85,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(res => res.json())
             .then(data => {
                 const bdSync = data.sync;
-                
                 if (isInitial) {
                     currentSyncTime = bdSync;
                     lblLastSync.innerText = currentSyncTime;
                 } else {
-                    // Se a data do banco for diferente da que está na tela (Teve atualização no Excel!)
                     if (bdSync !== '--:--' && bdSync !== currentSyncTime) {
-                        
-                        // Trava de segurança: Se o modal de configurar faixas estiver aberto, espera para não atrapalhar
                         if (modalConfig.style.display === 'block') return;
 
-                        console.log("Atualização do Excel detectada! Recarregando Kanban...");
-                        
-                        // Faz o backup dos filtros que o usuário está olhando
                         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
                         backupFiltros = { col: getChecked('list-colecao'), lin: getChecked('list-linha'), gru: getChecked('list-grupo') };
                         
-                        // Atualiza a variável para evitar loop infinito e mostra aviso
                         currentSyncTime = bdSync;
                         lblLastSync.innerText = "Atualizando dados...";
-                        
-                        // Dispara o recarregamento "fantasma" da página
                         selPlano.dispatchEvent(new Event('change'));
                         
-                        // Se a matriz de resumo estiver aberta, atualiza ela também
                         if (modalSummary.style.display === 'block') {
-                            setTimeout(() => { atualizarDadosMatriz(); }, 1000); // Espera 1s o kanban montar
+                            setTimeout(() => { atualizarDadosMatriz(); }, 1000); 
                         }
                     }
                 }
@@ -132,14 +113,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     btnAbrirResumo.onclick = () => {
         if (produtosBase.length === 0) { alert("Selecione um plano primeiro!"); return; }
-        modoColecao = false;
-        btnToggleColecao.innerText = "➕ Expandir Coleções";
+        
+        // Salva o filtro atual que estava no select antes de recriar as opções
+        const filtroAtual = resumoFilterGrupo.value || 'TODOS';
 
         const uniqueGrupos = [...new Set(produtosBase.map(d => d.grupo))].sort();
         resumoFilterGrupo.innerHTML = '<option value="TODOS">TODOS OS GRUPOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
         
+        // Reaplica o filtro salvo (se o grupo ainda existir no banco, senão volta pra TODOS)
+        if (uniqueGrupos.includes(filtroAtual)) {
+            resumoFilterGrupo.value = filtroAtual;
+        } else {
+            resumoFilterGrupo.value = 'TODOS';
+        }
+
+        // Mantém o estado visual do botão de expandir
+        btnToggleColecao.innerText = modoColecao ? "➖ Ocultar Coleções" : "➕ Expandir Coleções";
+
         atualizarDadosMatriz();
-        window.ordenarMatriz('padrao');
+        
+        // Mantém a ordenação salva em vez de forçar o 'padrao'
+        window.ordenarMatriz(sortConfig.key, sortConfig.dir);
+        
         modalSummary.style.display = 'block';
     };
 
@@ -425,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSave.onclick = async () => {
         const plano = selPlano.value, grupo = modalSelGrupo.value, inputs = containerLinhasDinamicas.querySelectorAll('.in-entrada');
         
-        // Pega os filtros na hora de salvar, mas NÃO subscreve o backup da sincronização
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         let tempBackup = { col: getChecked('list-colecao'), lin: getChecked('list-linha'), gru: getChecked('list-grupo') };
         
@@ -437,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetch('salvar_faixas.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plano, linha, grupo, valorEntrada: vEntrada, valorInter: vInter, valorPremium: vInter }) });
         }
         modalConfig.style.display = 'none'; 
-        selPlano.dispatchEvent(new Event('change')); // Recarrega os dados aplicando o tempBackup
+        selPlano.dispatchEvent(new Event('change')); 
         btnSave.innerText = "Salvar Todas as Faixas do Grupo"; btnSave.disabled = false;
     };
 
