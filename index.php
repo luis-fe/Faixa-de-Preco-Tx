@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Login - Kanban</title>
     <style>
         :root {
-            --green-primary: #2E7D32;
+            --green-primary: #25382D; /* <-- COR ATUALIZADA AQUI */
             --green-light: #E8F5E9;
             --green-medium: #4CAF50;
             --white: #FFFFFF;
