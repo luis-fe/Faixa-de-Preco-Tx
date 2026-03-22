@@ -5,6 +5,9 @@ header("Content-Type: text/plain; charset=UTF-8");
 
 require_once __DIR__ . '/../../db.php';
 
+// FORÇA O FUSO HORÁRIO PARA O PADRÃO BRASILEIRO (BRASÍLIA)
+date_default_timezone_set('America/Sao_Paulo');
+
 $json_recebido = file_get_contents('php://input');
 
 if (!empty($json_recebido)) {
@@ -76,9 +79,9 @@ if (!empty($json_recebido)) {
                 }
             }
 
-            // 5. REGISTRO DE AUDITORIA (LOG DE SINCRONIZAÇÃO)
-            // Pega a data e hora atual do servidor PHP no formato "DD/MM/YYYY HH:MM:SS"
-            $dataHoraAtual = date('d/m/Y H:i:s');
+            // 5. REGISTRO DE AUDITORIA (LOG DE SINCRONIZAÇÃO NO PADRÃO BR)
+            // Gera a string no formato: Dia/Mês/Ano Hora:Minuto:Segundo
+            $dataHoraBR = date('d/m/Y H:i:s');
             
             $sqlLog = 'INSERT INTO "controleSincronizacaoExcel" (plano, "dataHoraSincronizacao") 
                        VALUES (:plano, :dataHora) 
@@ -87,7 +90,7 @@ if (!empty($json_recebido)) {
             
             $pdo->prepare($sqlLog)->execute([
                 ':plano'    => $nomePlano,
-                ':dataHora' => $dataHoraAtual
+                ':dataHora' => $dataHoraBR
             ]);
 
             $pdo->commit();
