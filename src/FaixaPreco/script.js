@@ -2,12 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let produtosBase = []; 
     let colecoesAtuais = []; 
     let dadosMatriz = []; 
-    // Inicia o estado padrão, mas agora ele será lembrado ao fechar o modal
     let sortConfig = { key: 'padrao', dir: 'desc' };
     let modoColecao = false;
     let backupFiltros = null;
-
-    // --- VARIÁVEIS DO TEMPO REAL (POLLING) ---
+    
     let currentSyncTime = '--:--';
     let pollingInterval = null;
 
@@ -92,8 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (bdSync !== '--:--' && bdSync !== currentSyncTime) {
                         if (modalConfig.style.display === 'block') return;
 
+                        // Salva o backup dos filtros incluindo o estado do "Selecionar Tudo"
                         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-                        backupFiltros = { col: getChecked('list-colecao'), lin: getChecked('list-linha'), gru: getChecked('list-grupo') };
+                        backupFiltros = { 
+                            col: getChecked('list-colecao'), colAll: document.querySelector('#list-colecao .select-all').checked,
+                            lin: getChecked('list-linha'), linAll: document.querySelector('#list-linha .select-all').checked,
+                            gru: getChecked('list-grupo'), gruAll: document.querySelector('#list-grupo .select-all').checked 
+                        };
                         
                         currentSyncTime = bdSync;
                         lblLastSync.innerText = "Atualizando dados...";
@@ -114,27 +117,20 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAbrirResumo.onclick = () => {
         if (produtosBase.length === 0) { alert("Selecione um plano primeiro!"); return; }
         
-        // Salva o filtro atual que estava no select antes de recriar as opções
         const filtroAtual = resumoFilterGrupo.value || 'TODOS';
-
         const uniqueGrupos = [...new Set(produtosBase.map(d => d.grupo))].sort();
         resumoFilterGrupo.innerHTML = '<option value="TODOS">TODOS OS GRUPOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
         
-        // Reaplica o filtro salvo (se o grupo ainda existir no banco, senão volta pra TODOS)
         if (uniqueGrupos.includes(filtroAtual)) {
             resumoFilterGrupo.value = filtroAtual;
         } else {
             resumoFilterGrupo.value = 'TODOS';
         }
 
-        // Mantém o estado visual do botão de expandir
         btnToggleColecao.innerText = modoColecao ? "➖ Ocultar Coleções" : "➕ Expandir Coleções";
 
         atualizarDadosMatriz();
-        
-        // Mantém a ordenação salva em vez de forçar o 'padrao'
         window.ordenarMatriz(sortConfig.key, sortConfig.dir);
-        
         modalSummary.style.display = 'block';
     };
 
@@ -272,40 +268,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. CHECKBOXES DO KANBAN
+    // 4. CHECKBOXES DO KANBAN (COM CORREÇÃO DE ARMADILHA)
     // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
         const preencher = (container, data) => {
             container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 8px; color: var(--green-primary);"><input type="checkbox" class="select-all" checked> <strong>Selecionar Tudo</strong></label>` +
                 data.map(val => `<label><input type="checkbox" class="item-checkbox" value="${val}" checked> ${val}</label>`).join('');
-            container.querySelector('.select-all').addEventListener('change', (e) => {
-                container.querySelectorAll('.item-checkbox').forEach(chk => { if (chk.closest('label').style.display !== 'none') chk.checked = e.target.checked; });
+            
+            const chkAll = container.querySelector('.select-all');
+            const chkItems = container.querySelectorAll('.item-checkbox');
+
+            chkAll.addEventListener('change', (e) => {
+                // CORREÇÃO: "Selecionar Tudo" agora marca/desmarca TODOS, mesmo os invisíveis, quebrando a armadilha do filtro
+                chkItems.forEach(chk => chk.checked = e.target.checked);
                 atualizarKanban();
             });
-            container.querySelectorAll('.item-checkbox').forEach(chk => chk.addEventListener('change', atualizarKanban));
+
+            chkItems.forEach(chk => chk.addEventListener('change', () => {
+                // Atualiza o checkbox pai baseado no que está visível
+                const visiveis = Array.from(chkItems).filter(c => c.closest('label').style.display !== 'none');
+                chkAll.checked = visiveis.every(c => c.checked);
+                atualizarKanban();
+            }));
         };
-        preencher(listColecao, unique('colecao')); preencher(listLinha, unique('linha')); preencher(listGrupo, unique('grupo'));
+        preencher(listColecao, unique('colecao')); 
+        preencher(listLinha, unique('linha')); 
+        preencher(listGrupo, unique('grupo'));
     }
 
     function restaurarFiltros(backup) {
-        const aplicarBackup = (containerId, marcados) => {
+        const aplicarBackup = (containerId, marcados, wasAllChecked) => {
             const container = document.getElementById(containerId);
             const checkboxes = container.querySelectorAll('.item-checkbox');
             let allChecked = true;
             
             checkboxes.forEach(chk => {
-                chk.checked = marcados.includes(chk.value);
-                if (!chk.checked && chk.closest('label').style.display !== 'none') {
-                    allChecked = false;
+                // CORREÇÃO: Se estava com "Selecionar Tudo", marca as linhas novas que vieram do banco
+                if (wasAllChecked) {
+                    chk.checked = true;
+                } else {
+                    chk.checked = marcados.includes(chk.value);
                 }
+                if (!chk.checked) allChecked = false;
             });
             container.querySelector('.select-all').checked = allChecked;
         };
 
-        aplicarBackup('list-colecao', backup.col);
-        aplicarBackup('list-linha', backup.lin);
-        aplicarBackup('list-grupo', backup.gru);
+        aplicarBackup('list-colecao', backup.col, backup.colAll);
+        aplicarBackup('list-linha', backup.lin, backup.linAll);
+        aplicarBackup('list-grupo', backup.gru, backup.gruAll);
     }
 
     // ==========================================
@@ -421,7 +433,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const plano = selPlano.value, grupo = modalSelGrupo.value, inputs = containerLinhasDinamicas.querySelectorAll('.in-entrada');
         
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-        let tempBackup = { col: getChecked('list-colecao'), lin: getChecked('list-linha'), gru: getChecked('list-grupo') };
+        let tempBackup = { 
+            col: getChecked('list-colecao'), colAll: document.querySelector('#list-colecao .select-all').checked,
+            lin: getChecked('list-linha'), linAll: document.querySelector('#list-linha .select-all').checked,
+            gru: getChecked('list-grupo'), gruAll: document.querySelector('#list-grupo .select-all').checked 
+        };
         
         if (!backupFiltros) backupFiltros = tempBackup;
 
