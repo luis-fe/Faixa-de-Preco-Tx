@@ -30,31 +30,40 @@ require_once __DIR__ . '/../../db.php';
             margin: 0; padding: 0;
         }
 
-        /* NAVEGAÇÃO SUPERIOR */
-        .top-nav {
-            background-color: var(--white);
-            padding: 10px 20px;
-            display: flex;
-            gap: 15px;
-            border-bottom: 2px solid var(--green-primary);
-        }
-        .nav-tab {
-            background: none; border: 2px solid var(--green-primary);
-            color: var(--green-primary); padding: 8px 20px;
-            border-radius: 20px; font-weight: bold; cursor: pointer;
-            transition: 0.3s; font-size: 0.95em;
-        }
-        .nav-tab.active { background: var(--green-primary); color: var(--white); }
-        .nav-tab:hover { background: var(--green-medium); color: var(--white); border-color: var(--green-medium); }
-
         .header {
             background-color: var(--green-primary);
             color: var(--white);
             padding: 15px 20px; 
             display: flex; flex-wrap: wrap; gap: 15px; 
             align-items: center; justify-content: space-between;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            /* box-shadow removido daqui para colocar abaixo da navegação se preferir, ou mantido leve */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        /* NAVEGAÇÃO SUPERIOR (Agora Menor e como Submenu) */
+        .top-nav {
+            background-color: var(--white);
+            padding: 6px 20px; /* Bem mais fino */
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .nav-tab {
+            background: none; 
+            border: 1px solid var(--green-primary); /* Borda mais fina */
+            color: var(--green-primary); 
+            padding: 4px 12px; /* Reduzido drasticamente */
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer;
+            transition: 0.3s; 
+            font-size: 0.7em; /* Fonte muito menor */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .nav-tab.active { background: var(--green-primary); color: var(--white); }
+        .nav-tab:hover { background: var(--green-medium); color: var(--white); border-color: var(--green-medium); }
 
         .filters { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
 
@@ -156,7 +165,7 @@ require_once __DIR__ . '/../../db.php';
             height: calc(100vh - 230px); box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* Estilos de Modais... (mantidos iguais) */
+        /* Estilos de Modais */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
         .modal-content { background: #fff; margin: 5% auto; padding: 25px; border-radius: 8px; border: 3px solid var(--green-primary); position: relative;}
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: var(--green-primary); font-weight: bold; }
@@ -175,11 +184,6 @@ require_once __DIR__ . '/../../db.php';
     </style>
 </head>
 <body>
-
-    <div class="top-nav">
-        <button class="nav-tab active" id="tab-kanban">📋 Faixa de Preço</button>
-        <button class="nav-tab" id="tab-piramide">🔺 Pirâmide de Preços</button>
-    </div>
 
     <div class="header">
         <div class="filters">
@@ -222,12 +226,17 @@ require_once __DIR__ . '/../../db.php';
         <div class="global-indicator">Mix Total: <span id="total-mix">0</span></div>
     </div>
 
+    <div class="top-nav">
+        <button class="nav-tab active" id="tab-kanban">📋 Faixa de Preço</button>
+        <button class="nav-tab" id="tab-piramide">🔺 Pirâmide de Preços</button>
+    </div>
+
     <div class="kanban-board" id="view-kanban">
         <div class="kanban-column" id="col-entrada">
             <div class="kanban-header">
                 <h3>Entrada</h3>
                 <span class="range-info" id="info-range-entrada" style="display: none;">R$ 0 - R$ 99.99</span>
-                <span class="mix-info">Mix: <span id="mix-entrada">0</span></span>
+                <span class="mix    EndEntradaentEndEntenty EntEndEntEmpty">Mix: <span id="mix-entrada">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-entrada"></div>
         </div>
