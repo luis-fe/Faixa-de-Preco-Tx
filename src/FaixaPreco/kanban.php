@@ -15,6 +15,8 @@ require_once __DIR__ . '/../../db.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kanban de Produtos</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
     <style>
         :root {
             --green-primary: #25382D;
@@ -36,14 +38,13 @@ require_once __DIR__ . '/../../db.php';
             padding: 15px 20px; 
             display: flex; flex-wrap: wrap; gap: 15px; 
             align-items: center; justify-content: space-between;
-            /* box-shadow removido daqui para colocar abaixo da navegação se preferir, ou mantido leve */
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* NAVEGAÇÃO SUPERIOR (Agora Menor e como Submenu) */
+        /* NAVEGAÇÃO SUPERIOR (Atualizada: Menor e sem bordas) */
         .top-nav {
             background-color: var(--white);
-            padding: 6px 20px; /* Bem mais fino */
+            padding: 5px 20px; /* Reduzido o padding vertical do container */
             display: flex;
             gap: 10px;
             border-bottom: 1px solid #ccc;
@@ -51,19 +52,19 @@ require_once __DIR__ . '/../../db.php';
         }
         .nav-tab {
             background: none; 
-            border: 1px solid var(--green-primary); /* Borda mais fina */
+            border: none; /* <-- RETIRADO O FRAME/BORDA AQUI */
             color: var(--green-primary); 
-            padding: 4px 12px; /* Reduzido drasticamente */
-            border-radius: 12px; 
+            padding: 3px 11px; /* <-- REDUZIDO O PADDING EM 1 CASA AQUI */
+            border-radius: 10px; 
             font-weight: bold; 
             cursor: pointer;
             transition: 0.3s; 
-            font-size: 0.7em; /* Fonte muito menor */
+            font-size: 0.7em; 
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .nav-tab.active { background: var(--green-primary); color: var(--white); }
-        .nav-tab:hover { background: var(--green-medium); color: var(--white); border-color: var(--green-medium); }
+        .nav-tab:hover { background: var(--green-medium); color: var(--white); }
 
         .filters { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
 
@@ -236,7 +237,7 @@ require_once __DIR__ . '/../../db.php';
             <div class="kanban-header">
                 <h3>Entrada</h3>
                 <span class="range-info" id="info-range-entrada" style="display: none;">R$ 0 - R$ 99.99</span>
-                <span class="mix    EndEntradaentEndEntenty EntEndEntEmpty">Mix: <span id="mix-entrada">0</span></span>
+                <span class="mix-info">Mix: <span id="mix-entrada">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-entrada"></div>
         </div>

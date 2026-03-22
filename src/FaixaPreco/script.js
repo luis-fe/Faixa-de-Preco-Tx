@@ -1,3 +1,6 @@
+// REGISTRA O PLUGIN DE RÓTULOS DO CHART.JS
+Chart.register(ChartDataLabels);
+
 document.addEventListener('DOMContentLoaded', () => {
     let produtosBase = []; 
     let colecoesAtuais = []; 
@@ -51,6 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
         tabKanban.classList.remove('active');
         viewKanban.style.display = 'none';
         viewPiramide.style.display = 'block';
+        
+        // Garante que o gráfico seja redesenhado no tamanho correto ao abrir a aba
+        if (chartInstance) {
+            chartInstance.resize();
+            chartInstance.update();
+        }
     });
 
     // ==========================================
@@ -376,7 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(p => {
             const card = document.createElement('div'); card.className = 'card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
-            // --- CORREÇÃO DO "Mkt" PARA "Mkp" AQUI! ---
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
 
             let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
@@ -396,6 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     corFundo = '#4CAF50'; 
                     corTexto = '#ffffff';
                 } else if (txtMinusculo.includes('best') || txtMinusculo.includes('saller') || txtMinusculo.includes('seller')) {
+                    // --- CORRIGIDO AQUI: Aspas fechadas na palavra 'best' ---
                     corFundo = '#FF9800'; 
                     corTexto = '#ffffff';
                 }
@@ -456,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Quantidade de Produtos',
                     data: dados,
-                    backgroundColor: '#25382D', // A cor verde elegante que escolhemos
+                    backgroundColor: '#25382D', // Verde escuro elegante
                     borderColor: '#4CAF50',
                     borderWidth: 1,
                     borderRadius: 4
@@ -468,6 +477,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
+                    // --- CONFIGURAÇÃO DOS RÓTULOS (DENTRO E AO CENTRO) ---
+                    datalabels: {
+                        color: 'white', // Texto branco para contrastar
+                        anchor: 'center', // Fixa o ponto de ancoragem no centro da barra
+                        align: 'center',  // Alinha o texto centralizado no ponto de ancoragem
+                        font: {
+                            weight: 'bold',
+                            size: 13
+                        },
+                        formatter: function(value) {
+                            return value; // Apenas mostra o número puro
+                        }
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
@@ -477,12 +499,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 scales: {
+                    // --- RETIRA O EIXO X (linhas e números) AQUI ---
                     x: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'NÚMERO TOTAL DE PRODUTOS', font: { weight: 'bold' } }
+                        display: false, // Oculta o eixo X completamente
+                        beginAtZero: true
                     },
                     y: {
-                        title: { display: true, text: 'PREÇO SUGERIDO', font: { weight: 'bold' } }
+                        grid: { display: false }, // Limpa as linhas de grade do Y
+                        ticks: {
+                            color: '#25382D',
+                            font: { weight: 'bold', size: 12 }
+                        },
+                        title: { display: true, text: 'PREÇO SUGERIDO (B2B)', font: { weight: 'bold' } }
                     }
                 }
             }
