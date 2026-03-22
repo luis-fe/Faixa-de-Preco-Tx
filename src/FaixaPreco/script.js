@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const listLinha = document.getElementById('list-linha');
     const listGrupo = document.getElementById('list-grupo');
     const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
-    const filtroTabelaGrupo = document.getElementById('filtro-tabela-grupo'); // Novo Select
+    const filtroTabelaGrupo = document.getElementById('filtro-tabela-grupo');
 
     const modalConfig = document.getElementById('configModal');
     const modalSelGrupo = document.getElementById('modal-filter-grupo');
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pollingInterval) clearInterval(pollingInterval);
         lblLastSync.innerText = "Carregando...";
-        linhaSelecionadaPBI = null; // Reseta o clique da tabela ao mudar de plano
+        linhaSelecionadaPBI = null; 
 
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}&_=${Date.now()}`)
             .then(res => res.json())
@@ -362,12 +362,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. LÓGICA MESTRA DO KANBAN E TAGS
     // ==========================================
     
-    // Função Global chamada ao clicar numa linha da tabela
     window.toggleLinhaPBI = (grupo, linha) => {
         if (linhaSelecionadaPBI && linhaSelecionadaPBI.grupo === grupo && linhaSelecionadaPBI.linha === linha) {
-            linhaSelecionadaPBI = null; // Clicou na mesma linha? Desfaz o filtro
+            linhaSelecionadaPBI = null; 
         } else {
-            linhaSelecionadaPBI = { grupo, linha }; // Aplica o novo filtro
+            linhaSelecionadaPBI = { grupo, linha }; 
         }
         atualizarKanban();
     };
@@ -388,13 +387,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateVis = (cont, vSet) => { cont.querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
         updateVis(listColecao, validCol); updateVis(listLinha, validLin); updateVis(listGrupo, validGru);
 
-        // 1. Filtrados Gerais (Baseado APENAS nos Checkboxes do Cabeçalho)
         let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
-        // A Tabela Lateral não some com os dados, ela mostra tudo e destaca a linha!
         atualizarTabelaLateral(filtradosGerais);
 
-        // 2. Afunilamento Power BI (Aplica a seleção da Tabela sobre os dados)
         let filtradosParaVisuais = filtradosGerais;
         
         const setSub = (id, arr) => {
@@ -404,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (linhaSelecionadaPBI) {
             filtradosParaVisuais = filtradosGerais.filter(p => p.grupo === linhaSelecionadaPBI.grupo && p.linha === linhaSelecionadaPBI.linha);
-            // Mostra no cabeçalho o que está filtrado pelo clique
             setSub('sub-linha', [linhaSelecionadaPBI.linha]);
             setSub('sub-grupo', [linhaSelecionadaPBI.grupo]);
             setSub('sub-colecao', [...new Set(filtradosParaVisuais.map(p => p.colecao))]);
@@ -416,8 +411,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filtradosParaVisuais.sort((a, b) => a.preco - b.preco);
 
-        // Chama as funções da nova tela Pirâmide com os dados afunilados
-        renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C);
+        // --- LÓGICA DOS RÓTULOS (Esconde se for igual ao total da base) ---
+        // Se a quantidade de itens no gráfico for menor que o total da base de dados, significa que tem um filtro ativo.
+        const isFiltered = (linhaSelecionadaPBI !== null) || (filtradosParaVisuais.length < produtosBase.length);
+        
+        // Renderiza o Gráfico passando a variável de controle isFiltered
+        renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered);
 
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
         Object.values(cols).forEach(c => c.innerHTML = '');
@@ -454,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('mix-entrada').innerText = cont.e; document.getElementById('mix-inter').innerText = cont.i; document.getElementById('mix-premium').innerText = cont.p;
         
-        // Se houver clique do PBI, mostra quantos itens tem naquele filtro específico no painel principal
         if (linhaSelecionadaPBI) {
             document.getElementById('total-mix').innerText = `${cont.e + cont.i + cont.p} (Filtrado)`;
         } else {
@@ -480,10 +478,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtroSelect = document.getElementById('filtro-tabela-grupo').value;
         const tbody = document.querySelector('#side-summary-table tbody');
         
-        // Agrupa os produtos por Grupo e Linha
         const mapa = {};
         filtradosGerais.forEach(p => {
-            // Aplica o filtro do <select> acima da tabela
             if (filtroSelect !== 'TODOS' && p.grupo !== filtroSelect) return;
 
             const key = p.grupo + '|' + p.linha;
@@ -494,19 +490,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const arrayResumo = Object.values(mapa);
         arrayResumo.sort((a, b) => a.grupo.localeCompare(b.grupo) || a.linha.localeCompare(b.linha));
 
-        // Renderiza a tabela aplicando o estilo visual Power BI
         tbody.innerHTML = arrayResumo.map(item => {
             let classeCSS = '';
             
             if (linhaSelecionadaPBI) {
                 if (linhaSelecionadaPBI.grupo === item.grupo && linhaSelecionadaPBI.linha === item.linha) {
-                    classeCSS = 'selected'; // Realça!
+                    classeCSS = 'selected'; 
                 } else {
-                    classeCSS = 'dimmed'; // Apaga as outras
+                    classeCSS = 'dimmed'; 
                 }
             }
 
-            // Escapa aspas simples para não quebrar a função onclick
             const escG = item.grupo.replace(/'/g, "\\'");
             const escL = item.linha.replace(/'/g, "\\'");
 
@@ -519,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
-    function renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C) {
+    function renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered) {
         const ctx = document.getElementById('graficoPiramide').getContext('2d');
 
         const tituloGrafico = analisarB2C ? 'Preço B2c x Nº Produtos' : 'Preço B2b x Nº Produtos';
@@ -556,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: labelsComSifrao,
                 datasets: [{
                     data: dados,
-                    backgroundColor: '#4CAF50', // Gráfico SEMPRE verde médio
+                    backgroundColor: '#4CAF50', 
                     borderWidth: 0,
                     borderRadius: 4,
                     barPercentage: 0.85, 
@@ -580,8 +574,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // --- REGRAS DOS RÓTULOS (DENTRO DA BARRA) ---
                     datalabels: {
+                        display: isFiltered, // <-- MÁGICA DOS RÓTULOS AQUI!
                         color: '#fff', 
-                        // Se for B2C, a "etiqueta" do número fica Roxa! Se não, Verde Escuro.
                         backgroundColor: analisarB2C ? '#673AB7' : '#25382D', 
                         borderRadius: 4,
                         padding: 4,
@@ -618,12 +612,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function popularGrupoModal() {
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
         
-        // Popula Configurar Faixas
         modalSelGrupo.innerHTML = '<option value="" disabled selected>Selecione...</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
         
-        // Popula Tabela Lateral da Pirâmide
         const selTabelaGrupo = document.getElementById('filtro-tabela-grupo');
-        const grupoAtualTabela = selTabelaGrupo.value; // Guarda o que estava marcado
+        const grupoAtualTabela = selTabelaGrupo.value; 
         selTabelaGrupo.innerHTML = '<option value="TODOS">TODOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
         if (uniqueGrupos.includes(grupoAtualTabela)) selTabelaGrupo.value = grupoAtualTabela;
     }
@@ -682,7 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('resumo-filter-grupo').value = 'TODOS';
         document.getElementById('filtro-tabela-grupo').value = 'TODOS';
         toggleTipoPreco.checked = false; 
-        linhaSelecionadaPBI = null; // Remove a seleção do PBI também
+        linhaSelecionadaPBI = null; 
         atualizarKanban();
     });
 
