@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return {
                         ref: p.referencia || 'N/A', desc: p.descricao || '', 
                         colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: p.grupo || 'GERAL',
-                        subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', // CAPTURA A SUBCOLEÇÃO
+                        subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', // Busca a subcoleção do banco
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, eMax: parseFloat(p.faixa_entrada_max) || 0, iMax: parseFloat(p.faixa_inter_max) || 0
                     };
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. LÓGICA MESTRA DO KANBAN E INJEÇÃO DA TAG
+    // 4. LÓGICA MESTRA DO KANBAN E BI
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -277,23 +277,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let cont = { e: 0, i: 0, p: 0 };
 
         filtrados.forEach(p => {
-            const card = document.createElement('div'); 
-            card.className = 'card';
-            
+            const card = document.createElement('div'); card.className = 'card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkt: ${p.mkp.toFixed(2)}</span>` : '';
-            
-            // INJETA A TAG SE ELA EXISTIR
-            let badgeHtml = '';
-            if (p.subcolecao && p.subcolecao.trim() !== '') {
-                badgeHtml = `<div class="subcolecao-badge">${p.subcolecao}</div>`;
-            }
 
-            card.innerHTML = `
-                <div class="info-container"><span class="ref-code">${p.ref}</span><span class="description">${p.desc}</span></div>
+            // --- CORREÇÃO DA TAG AQUI ---
+            // Se tiver subcoleção mostra ela, senão mostra a coleção
+            let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
+            let badgeHtml = nomeTag ? `<div class="subcolecao-badge">${nomeTag}</div>` : '';
+
+            card.innerHTML = `<div class="info-container"><span class="ref-code">${p.ref}</span><span class="description">${p.desc}</span></div>
                 <div class="price-container"><div class="b2b-row"><span class="price">R$ ${p.preco.toFixed(2)}</span>${mkpHtml}</div>${b2cHtml}</div>
-                ${badgeHtml}
-            `;
+                ${badgeHtml}`;
 
             if (p.preco <= p.eMax) { cols.entrada.appendChild(card); cont.e++; }
             else if (p.preco <= p.iMax) { cols.inter.appendChild(card); cont.i++; }
