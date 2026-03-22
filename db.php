@@ -57,6 +57,11 @@ try {
             "valorPremium" varchar,
             UNIQUE(plano, linha, grupo)
         );
+
+        create table  IF NOT EXISTS "controleSincronizacaoExcel" (
+            "dataHoraSincronizacao" varchar,
+            "plano" VARCHAR PRIMARY KEY
+            )
     ';
     $pdo->exec($sql);
 
