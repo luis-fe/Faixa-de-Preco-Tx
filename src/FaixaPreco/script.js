@@ -26,13 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnToggleColecao = document.getElementById('btn-toggle-colecao');
 
     // ==========================================
-    // 1. BUSCAR DADOS
+    // 1. BUSCAR DADOS (COM QUEBRA-CACHE)
     // ==========================================
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
         if (!plano) { limparFiltros(); return; }
 
-        fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}`)
+        // O Date.now() impede que o navegador use cache, trazendo sempre os valores atualizados do banco!
+        fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}&_=${Date.now()}`)
             .then(res => res.json())
             .then(data => {
                 produtosBase = data.map(p => {
@@ -281,26 +282,24 @@ document.addEventListener('DOMContentLoaded', () => {
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkt: ${p.mkp.toFixed(2)}</span>` : '';
 
-            // --- LÓGICA DE CORES DA TAG ---
             let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
             let badgeHtml = '';
             
             if (nomeTag) {
                 let txtMinusculo = nomeTag.toLowerCase();
-                let corFundo = '#757575'; // Default: Cinza
-                let corTexto = '#ffffff'; // Default: Branco
+                let corFundo = '#757575'; 
+                let corTexto = '#ffffff'; 
                 
                 if (txtMinusculo.includes('starter') || txtMinusculo.includes('estoque futuro')) {
-                    corFundo = '#9E9E9E'; // Cinza
+                    corFundo = '#9E9E9E'; 
                 } else if (txtMinusculo.includes('lancamento') || txtMinusculo.includes('lançamento')) {
-                    // Amarelo um pouco mais escuro para a letra branca aparecer bem
                     corFundo = '#FBC02D'; 
                     corTexto = '#ffffff';
                 } else if (txtMinusculo.includes('reedicao') || txtMinusculo.includes('reedição')) {
-                    corFundo = '#4CAF50'; // Verde
+                    corFundo = '#4CAF50'; 
                     corTexto = '#ffffff';
                 } else if (txtMinusculo.includes('best') || txtMinusculo.includes('saller') || txtMinusculo.includes('seller')) {
-                    corFundo = '#FF9800'; // Laranja
+                    corFundo = '#FF9800'; 
                     corTexto = '#ffffff';
                 }
 
@@ -320,10 +319,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('total-mix').innerText = cont.e + cont.i + cont.p;
 
         const rangeE = document.getElementById('info-range-entrada'), rangeI = document.getElementById('info-range-inter'), rangeP = document.getElementById('info-range-premium');
-        if ((effLin.length === 1 || effGru.length === 1) && filtrados.length > 0) {
-            rangeE.innerText = `Até R$ ${filtrados[0].eMax.toFixed(2)}`; rangeI.innerText = `R$ ${(filtrados[0].eMax + 0.01).toFixed(2)} - R$ ${filtrados[0].iMax.toFixed(2)}`; 
+        
+        // --- CORREÇÃO DA LEGENDA AQUI ---
+        // Agora só exibe a faixa se for exatamente 1 Linha E 1 Grupo filtrados e visíveis.
+        if (effLin.length === 1 && effGru.length === 1 && filtrados.length > 0) {
+            rangeE.innerText = `Até R$ ${filtrados[0].eMax.toFixed(2)}`; 
+            rangeI.innerText = `R$ ${(filtrados[0].eMax + 0.01).toFixed(2)} - R$ ${filtrados[0].iMax.toFixed(2)}`; 
             rangeE.style.display = rangeI.style.display = rangeP.style.display = 'block';
-        } else { rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none'; }
+        } else { 
+            rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none'; 
+        }
     }
 
     // ==========================================
