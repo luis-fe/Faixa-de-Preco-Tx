@@ -26,14 +26,12 @@ if (!empty($json_recebido)) {
             $pdo->prepare($sqlLimpar)->execute([':plano' => $nomePlano]);
 
             // 4. Prepara os SQLs de Inserção (COM PROTEÇÃO CONTRA DUPLICADOS NA PLANILHA)
-            
             $sqlProd = 'INSERT INTO "produto" (referencia, descricao, colecao, linha, grupo, "classificacao") 
                         VALUES (:ref, :desc, :col, :lin, :gru, :class)
                         ON CONFLICT (referencia) DO UPDATE SET 
                         descricao = EXCLUDED.descricao, colecao = EXCLUDED.colecao, 
                         linha = EXCLUDED.linha, grupo = EXCLUDED.grupo, "classificacao" = EXCLUDED."classificacao"';
 
-            // DEVOLVEMOS O "ON CONFLICT" PARA BLINDAR CONTRA DUPLICAÇÕES NO EXCEL
             $sqlPreco = 'INSERT INTO "produto_plano" (referencia, plano, "precoB2B", "precoB2C", "MkpB2B") 
                          VALUES (:ref, :plano, :precoB2B, :precoB2C, :mkpB2B)
                          ON CONFLICT (referencia, plano) DO UPDATE SET 
@@ -71,12 +69,26 @@ if (!empty($json_recebido)) {
                         ':plano'    => $nomePlano,
                         ':precoB2B' => $item['preco'] ?? '',      
                         ':precoB2C' => $item['precoB2C'] ?? '',
-                        ':mkpB2B'   => $mkp // Entrando arredondado
+                        ':mkpB2B'   => $mkp
                     ]);
                     
                     $contador++;
                 }
             }
+
+            // 5. REGISTRO DE AUDITORIA (LOG DE SINCRONIZAÇÃO)
+            // Pega a data e hora atual do servidor PHP no formato "DD/MM/YYYY HH:MM:SS"
+            $dataHoraAtual = date('d/m/Y H:i:s');
+            
+            $sqlLog = 'INSERT INTO "controleSincronizacaoExcel" (plano, "dataHoraSincronizacao") 
+                       VALUES (:plano, :dataHora) 
+                       ON CONFLICT (plano) DO UPDATE SET 
+                       "dataHoraSincronizacao" = EXCLUDED."dataHoraSincronizacao"';
+            
+            $pdo->prepare($sqlLog)->execute([
+                ':plano'    => $nomePlano,
+                ':dataHora' => $dataHoraAtual
+            ]);
 
             $pdo->commit();
             file_put_contents('dados.json', $json_recebido);
