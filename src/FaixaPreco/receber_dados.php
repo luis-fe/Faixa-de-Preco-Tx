@@ -28,7 +28,7 @@ if (!empty($json_recebido)) {
             $sqlLimpar = 'DELETE FROM "produto_plano" WHERE plano = :plano';
             $pdo->prepare($sqlLimpar)->execute([':plano' => $nomePlano]);
 
-            // 4. Prepara os SQLs de Inserção (COM PROTEÇÃO CONTRA DUPLICADOS NA PLANILHA)
+            // 4. Prepara os SQLs de Inserção
             $sqlProd = 'INSERT INTO "produto" (referencia, descricao, colecao, linha, grupo, "classificacao") 
                         VALUES (:ref, :desc, :col, :lin, :gru, :class)
                         ON CONFLICT (referencia) DO UPDATE SET 
@@ -45,10 +45,24 @@ if (!empty($json_recebido)) {
             $stmtProd = $pdo->prepare($sqlProd);
             $stmtPreco = $pdo->prepare($sqlPreco);
 
+            // Variáveis de Auditoria
             $contador = 0;
+            $linhas_puladas = 0;
+            $duplicados_na_planilha = 0;
+            $rastreador_refs = []; 
+
             foreach ($dados as $item) {
-                if (!empty($item['ref'])) {
+                $ref = $item['ref'] ?? '';
+                
+                // Correção 1: Usar !== '' ao invés de empty() para não pular código "0"
+                if ($ref !== '') {
                     
+                    // Correção 2 (O Detetive): Verifica se o Excel mandou a mesma Ref 2 vezes
+                    if (isset($rastreador_refs[$ref])) {
+                        $duplicados_na_planilha++;
+                    }
+                    $rastreador_refs[$ref] = true;
+
                     // --- Tratamento do Markup (Arredondamento para 2 casas) ---
                     $mkp = $item['MkpB2B'] ?? '';
                     if ($mkp !== '') {
@@ -58,7 +72,7 @@ if (!empty($json_recebido)) {
 
                     // Salva Produto
                     $stmtProd->execute([
-                        ':ref'   => $item['ref'],
+                        ':ref'   => $ref,
                         ':desc'  => $item['descricao'] ?? '',
                         ':col'   => $item['colecao'] ?? '',
                         ':lin'   => $item['linha'] ?? '',
@@ -68,7 +82,7 @@ if (!empty($json_recebido)) {
 
                     // Salva Preços e Markup
                     $stmtPreco->execute([
-                        ':ref'      => $item['ref'],
+                        ':ref'      => $ref,
                         ':plano'    => $nomePlano,
                         ':precoB2B' => $item['preco'] ?? '',      
                         ':precoB2C' => $item['precoB2C'] ?? '',
@@ -76,11 +90,12 @@ if (!empty($json_recebido)) {
                     ]);
                     
                     $contador++;
+                } else {
+                    $linhas_puladas++;
                 }
             }
 
             // 5. REGISTRO DE AUDITORIA (LOG DE SINCRONIZAÇÃO NO PADRÃO BR)
-            // Gera a string no formato: Dia/Mês/Ano Hora:Minuto:Segundo
             $dataHoraBR = date('d/m/Y H:i:s');
             
             $sqlLog = 'INSERT INTO "controleSincronizacaoExcel" (plano, "dataHoraSincronizacao") 
@@ -96,9 +111,18 @@ if (!empty($json_recebido)) {
             $pdo->commit();
             file_put_contents('dados.json', $json_recebido);
             
-            echo "Sincronizado com Sucesso!\n";
+            // --- RESPOSTA CUSTOMIZADA PARA A MACRO ---
+            echo "=== Sincronizado com Sucesso! ===\n";
             echo "Plano: '$nomePlano'\n";
-            echo "Ação: Base limpa e $contador produtos gravados (duplicidades da planilha foram mescladas).";
+            echo "Processados: $contador produtos lidos do Excel.\n";
+            
+            if ($duplicados_na_planilha > 0) {
+                echo "\n⚠️ ATENÇÃO: Encontramos $duplicados_na_planilha Referências repetidas na sua planilha! O sistema unificou elas no banco, por isso o total final será menor do que as linhas do Excel.\n";
+            }
+            
+            if ($linhas_puladas > 0) {
+                echo "\n⚠️ ATENÇÃO: $linhas_puladas linhas vieram sem Referência e foram descartadas.\n";
+            }
 
         } catch (Exception $e) {
             $pdo->rollBack();
