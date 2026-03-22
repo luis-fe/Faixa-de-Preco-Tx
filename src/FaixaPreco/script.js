@@ -271,7 +271,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateVis = (cont, vSet) => { cont.querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
         updateVis(listColecao, validCol); updateVis(listLinha, validLin); updateVis(listGrupo, validGru);
 
-        const filtrados = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
+        // Filtra os produtos
+        let filtrados = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
+        
+        // ORDENAÇÃO: Ordem Crescente de Preço
+        filtrados.sort((a, b) => a.preco - b.preco);
+
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
         Object.values(cols).forEach(c => c.innerHTML = '');
         let cont = { e: 0, i: 0, p: 0 };
@@ -281,7 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkt: ${p.mkp.toFixed(2)}</span>` : '';
 
-            // --- LÓGICA DE CORES DA TAG ---
             let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
             let badgeHtml = '';
             
@@ -320,11 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const rangeE = document.getElementById('info-range-entrada'), rangeI = document.getElementById('info-range-inter'), rangeP = document.getElementById('info-range-premium');
         
-        // --- CORREÇÃO DA LEGENDA E DA FAIXA PREMIUM AQUI ---
         if (effLin.length === 1 && effGru.length === 1 && filtrados.length > 0) {
             rangeE.innerText = `Até R$ ${filtrados[0].eMax.toFixed(2)}`; 
             rangeI.innerText = `R$ ${(filtrados[0].eMax + 0.01).toFixed(2)} - R$ ${filtrados[0].iMax.toFixed(2)}`; 
-            rangeP.innerText = `Acima de R$ ${filtrados[0].iMax.toFixed(2)}`; // Linha adicionada!
+            rangeP.innerText = `Acima de R$ ${filtrados[0].iMax.toFixed(2)}`;
             rangeE.style.display = rangeI.style.display = rangeP.style.display = 'block';
         } else { 
             rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none'; 
