@@ -23,6 +23,7 @@ require_once __DIR__ . '/../../db.php';
             --green-light: #E8F5E9;
             --green-medium: #4CAF50;
             --white: #FFFFFF;
+            --purple-b2c: #673AB7; /* Cor para identificar B2C */
         }
 
         body {
@@ -30,158 +31,254 @@ require_once __DIR__ . '/../../db.php';
             background-color: var(--green-light);
             color: var(--green-primary);
             margin: 0; padding: 0;
+            overflow-x: hidden;
         }
 
         .header {
             background-color: var(--green-primary);
             color: var(--white);
-            padding: 15px 20px; 
+            padding: 10px 20px; 
             display: flex; flex-wrap: wrap; gap: 15px; 
             align-items: center; justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative; z-index: 100;
         }
 
-        /* NAVEGAÇÃO SUPERIOR (Atualizada: Menor e sem bordas) */
+        /* NAVEGAÇÃO SUPERIOR (Ajustada: Padding mínimo e sem frames) */
         .top-nav {
             background-color: var(--white);
-            padding: 5px 20px; /* Reduzido o padding vertical do container */
+            padding: 3px 20px; /* Padding vertical mínimo */
             display: flex;
-            gap: 10px;
+            gap: 8px;
             border-bottom: 1px solid #ccc;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative; z-index: 90;
         }
         .nav-tab {
             background: none; 
-            border: none; /* <-- RETIRADO O FRAME/BORDA AQUI */
+            border: none;
             color: var(--green-primary); 
-            padding: 3px 11px; /* <-- REDUZIDO O PADDING EM 1 CASA AQUI */
-            border-radius: 10px; 
+            padding: 2px 8px; /* Padding extremamente reduzido */
+            border-radius: 8px; 
             font-weight: bold; 
             cursor: pointer;
             transition: 0.3s; 
-            font-size: 0.7em; 
+            font-size: 0.68em; /* Fonte ligeiramente menor */
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            opacity: 0.8;
         }
-        .nav-tab.active { background: var(--green-primary); color: var(--white); }
-        .nav-tab:hover { background: var(--green-medium); color: var(--white); }
+        .nav-tab.active { background: var(--green-primary); color: var(--white); opacity: 1; }
+        .nav-tab:hover { background: var(--green-light); opacity: 1; }
+        .nav-tab.active:hover { background: var(--green-primary); }
 
-        .filters { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
         #filter-plano {
-            padding: 8px 10px; border-radius: 4px; border: 1px solid var(--white);
+            padding: 6px 10px; border-radius: 4px; border: 1px solid var(--white);
             background: var(--white); color: var(--green-primary);
-            font-weight: bold; cursor: pointer;
+            font-weight: bold; cursor: pointer; font-size: 0.85em;
         }
 
         /* Dropdowns Suspensos */
-        .multiselect-container { position: relative; display: inline-block; min-width: 180px; }
+        .multiselect-container { position: relative; display: inline-block; min-width: 160px; }
         .select-box {
             background-color: var(--white); color: var(--green-primary);
-            padding: 8px 12px; border-radius: 4px; border: 1px solid #ccc;
-            cursor: pointer; font-size: 0.9em; font-weight: bold;
+            padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;
+            cursor: pointer; font-size: 0.85em; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center;
         }
         
-        .filter-subtitle {
-            color: #888;
-            font-size: 0.85em;
-            font-weight: normal;
-            margin-left: 6px;
-        }
-
-        .select-box::after { content: '▼'; font-size: 0.7em; margin-left: 10px; color: #888; }
+        .filter-subtitle { color: #888; font-size: 0.8em; font-weight: normal; margin-left: 4px; }
+        .select-box::after { content: '▼'; font-size: 0.7em; margin-left: 8px; color: #888; }
+        
         .checkboxes-list {
             display: none; position: absolute; background-color: var(--white);
             border: 1px solid #ccc; width: 100%; max-height: 250px;
             overflow-y: auto; z-index: 1001; box-shadow: 0 5px 15px rgba(0,0,0,0.2); padding: 5px 0;
+            border-radius: 4px;
         }
         .checkboxes-list.show { display: block; }
-        .checkboxes-list label { display: block; padding: 8px 12px; color: #333; font-size: 0.85em; cursor: pointer; }
+        .checkboxes-list label { display: block; padding: 6px 12px; color: #333; font-size: 0.8em; cursor: pointer; }
         .checkboxes-list label:hover { background-color: var(--green-light); }
-        .checkboxes-list input { margin-right: 10px; }
+        .checkboxes-list input { margin-right: 8px; }
 
         .global-indicator {
             background-color: var(--white); color: var(--green-primary);
-            padding: 8px 15px; border-radius: 20px; font-weight: bold;
+            padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em;
             border: 2px solid var(--green-medium);
         }
 
         .btn {
             background-color: var(--green-medium); color: var(--white);
-            border: 2px solid var(--white); padding: 8px 15px;
-            cursor: pointer; border-radius: 4px; font-weight: bold;
+            border: 1px solid var(--white); padding: 6px 12px;
+            cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 0.85em;
         }
+        .btn:hover { background-color: var(--white); color: var(--green-medium); border-color: var(--green-medium); }
 
         #btn-limpar-filtros {
             background: none; border: none; color: var(--green-light);
-            text-decoration: underline; cursor: pointer; font-size: 0.85em;
-            padding: 5px; opacity: 0.9;
+            text-decoration: underline; cursor: pointer; font-size: 0.8em;
+            padding: 5px; opacity: 0.8;
         }
         #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
 
         /* Kanban Board */
-        .kanban-board { display: flex; gap: 20px; padding: 20px; height: calc(100vh - 190px); }
+        .kanban-board { display: flex; gap: 15px; padding: 15px; height: calc(100vh - 170px); }
         .kanban-column {
-            background-color: var(--white); flex: 1; border: 2px solid var(--green-medium);
+            background-color: var(--white); flex: 1; border: 1px solid #ddd;
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; }
-        .kanban-header h3 { margin: 0 0 5px 0; font-size: 1.1em; }
-        .range-info { font-size: 0.85em; opacity: 0.9; }
-        .mix-info { display: block; margin-top: 5px; font-size: 1.1em; font-weight: bold; color: #E8F5E9; }
+        .kanban-header { background-color: var(--green-primary); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-medium); }
+        .kanban-header h3 { margin: 0 0 3px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }
+        .range-info { font-size: 0.75em; opacity: 0.8; display: block; margin-bottom: 3px;}
+        .mix-info { display: block; font-size: 1em; font-weight: bold; color: var(--green-light); }
+        
         .kanban-cards {
-            padding: 15px; overflow-y: auto; flex-grow: 1; background-color: #fafafa;
-            display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
+            padding: 10px; overflow-y: auto; flex-grow: 1; background-color: #f5f5f5;
+            display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 10px; align-content: start;
         }
         
         /* CARD */
         .card {
-            background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
-            padding: 10px; padding-bottom: 22px; 
-            border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-height: 90px; justify-content: space-between;
-            overflow: hidden; word-wrap: break-word;
-            position: relative; 
+            background-color: var(--white); border: 1px solid #eee; border-top: 3px solid var(--green-primary);
+            padding: 8px; padding-bottom: 20px; 
+            border-radius: 4px; display: flex; flex-direction: column; gap: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); min-height: 80px; justify-content: space-between;
+            overflow: hidden; position: relative; transition: 0.2s;
         }
-        .card .info-container { display: flex; flex-direction: column; gap: 2px; }
-        .card .ref-code { font-size: 0.9em; color: #222; font-weight: bold; display: block; }
-        .card .description { font-size: 0.78em; color: #757575; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 6px; margin-top: 4px; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        .card .info-container { display: flex; flex-direction: column; gap: 1px; }
+        .card .ref-code { font-size: 0.85em; color: #222; font-weight: bold; display: block; }
+        .card .description { font-size: 0.75em; color: #666; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 1.8em; }
+        .card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 4px; margin-top: 2px; }
         .card .b2b-row { display: flex; justify-content: space-between; align-items: baseline; }
-        .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
-        .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
-        .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
+        .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.1em; white-space: nowrap; }
+        .card .markup { color: #888; font-size: 0.8em; font-weight: bold; }
+        .card .price-b2c { color: var(--purple-b2c); font-size: 0.7em; font-weight: bold; display: block; margin-top: -1px; }
 
         .subcolecao-badge {
-            position: absolute; bottom: 0; right: 0; font-size: 0.68em; 
-            font-weight: bold; padding: 3px 8px; border-top-left-radius: 6px; 
-            letter-spacing: 0.5px; text-transform: uppercase;
+            position: absolute; bottom: 0; right: 0; font-size: 0.65em; 
+            font-weight: bold; padding: 2px 6px; border-top-left-radius: 4px; 
+            letter-spacing: 0.5px; text-transform: uppercase; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        /* CONTAINER DA PIRÂMIDE */
+        /* ==========================================
+           VISÃO PIRÂMIDE (Ajustada para 80% e Centralizada)
+           ========================================== */
         #piramide-view {
-            display: none; padding: 20px; background: white; margin: 20px; 
-            border-radius: 8px; border: 2px solid var(--green-medium); 
-            height: calc(100vh - 230px); box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none; 
+            width: 80%; /* <-- LARGURA 80% SOLICITADA */
+            margin: 20px auto; /* <-- CENTRALIZADO HORA horizontalmente */
+            padding: 15px; 
+            background: white; 
+            border-radius: 8px; 
+            border: 1px solid #ddd; 
+            height: calc(100vh - 210px); 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            box-sizing: border-box; /* Garante que padding não aumente a largura */
         }
 
-        /* Estilos de Modais */
+        /* Área do Botão Seletor (Toggle) */
+        .chart-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            gap: 15px;
+        }
+
+        .control-label {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* Container do Switch */
+        .price-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f5f5f5;
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+        }
+
+        .toggle-text {
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .toggle-text.b2b { color: var(--green-primary); }
+        .toggle-text.b2c { color: #999; } /* Apagado inicialmente */
+
+        /* Estilo do Switch (O Botão ON/OFF) */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--green-primary); /* Cor B2B (Padrão) */
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        /* Quando ATIVADO (vai para B2C) */
+        input:checked + .slider { background-color: var(--purple-b2c); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Lógica de cores dos textos ao lado */
+        input:checked ~ .toggle-text.b2b { color: #999; }
+        input:checked ~ .toggle-text.b2c { color: var(--purple-b2c); }
+        
+        /* Container do Canvas para garantir que ocupe o resto da altura */
+        .chart-canvas-wrapper {
+            width: 100%;
+            height: calc(100% - 60px); /* Desconta o espaço dos controles */
+            position: relative;
+        }
+
+        /* Estilos de Modais (mantidos iguais) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
-        .modal-content { background: #fff; margin: 5% auto; padding: 25px; border-radius: 8px; border: 3px solid var(--green-primary); position: relative;}
-        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: var(--green-primary); font-weight: bold; }
-        .footer { text-align: center; font-size: 0.8em; color: #666; padding: 10px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ccc;}
+        .modal-content { background: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; border: 2px solid var(--green-primary); position: relative;}
+        .close-modal { position: absolute; top: 8px; right: 12px; font-size: 22px; cursor: pointer; color: var(--green-primary); font-weight: bold; opacity: 0.7; }
+        .close-modal:hover { opacity: 1; }
+        .footer { text-align: center; font-size: 0.75em; color: #888; padding: 8px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ddd; z-index: 80;}
 
         #table-resumo { width: 100%; border-collapse: collapse; margin-top: 5px; }
-        #table-resumo th, #table-resumo td { border: 1px solid #dcdcdc; padding: 10px; font-size: 0.9em; }
-        #table-resumo thead th { background: #757575; color: white; padding: 12px; position: sticky; top: 0; cursor: pointer; font-size: 0.85em; text-align: left; border: 1px solid #616161; }
-        #table-resumo thead th:hover { background: #9E9E9E; } 
-        #table-resumo tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        #table-resumo th, #table-resumo td { border: 1px solid #eee; padding: 8px; font-size: 0.85em; text-align: left; }
+        #table-resumo thead th { background: #666; color: white; position: sticky; top: 0; cursor: pointer; text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.5px; border-color: #555;}
+        #table-resumo thead th:hover { background: #777; } 
+        #table-resumo tbody tr:nth-child(even) { background-color: #fafafa; }
         #table-resumo tbody tr:hover { background-color: #e8f5e9; }
         .matrix-link { color: var(--green-primary); text-decoration: underline; cursor: pointer; font-weight: bold; display: block; }
-        .matrix-link:hover { color: #1b5e20; background: rgba(76, 175, 80, 0.1); border-radius: 4px; }
+        .matrix-link:hover { color: var(--green-medium); }
         .matrix-link-white { color: white; text-decoration: underline; cursor: pointer; font-weight: bold; display: block; }
-        .matrix-link-white:hover { color: #e8f5e9; }
+        .matrix-link-white:hover { color: var(--green-light); }
     </style>
 </head>
 <body>
@@ -189,7 +286,7 @@ require_once __DIR__ . '/../../db.php';
     <div class="header">
         <div class="filters">
             <select id="filter-plano">
-                <option value="">SELECIONE O PLANO</option>
+                <option value="">PLANO</option>
                 <?php
                 $stmt = $pdo->query('SELECT plano FROM "Plano" ORDER BY plano');
                 while($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -219,8 +316,8 @@ require_once __DIR__ . '/../../db.php';
                 <div class="checkboxes-list" id="list-grupo"></div>
             </div>
 
-            <button class="btn" id="btn-config">Configurar Faixas</button>
-            <button class="btn" id="btn-resumo">Resumo do Mix</button> 
+            <button class="btn" id="btn-config">Faixas</button>
+            <button class="btn" id="btn-resumo">Resumo Mix</button> 
 
             <button id="btn-limpar-filtros" title="Limpar todos os filtros">Limpar Filtros</button>
         </div>
@@ -236,7 +333,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="kanban-column" id="col-entrada">
             <div class="kanban-header">
                 <h3>Entrada</h3>
-                <span class="range-info" id="info-range-entrada" style="display: none;">R$ 0 - R$ 99.99</span>
+                <span class="range-info" id="info-range-entrada" style="display: none;"></span>
                 <span class="mix-info">Mix: <span id="mix-entrada">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-entrada"></div>
@@ -244,7 +341,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="kanban-column" id="col-inter">
             <div class="kanban-header">
                 <h3>Intermediário</h3>
-                <span class="range-info" id="info-range-inter" style="display: none;">R$ 100 - R$ 299</span>
+                <span class="range-info" id="info-range-inter" style="display: none;"></span>
                 <span class="mix-info">Mix: <span id="mix-inter">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-inter"></div>
@@ -252,7 +349,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="kanban-column" id="col-premium">
             <div class="kanban-header">
                 <h3>Premium</h3>
-                <span class="range-info" id="info-range-premium" style="display: none;">Acima de R$ 300</span>
+                <span class="range-info" id="info-range-premium" style="display: none;"></span>
                 <span class="mix-info">Mix: <span id="mix-premium">0</span></span>
             </div>
             <div class="kanban-cards" id="cards-premium"></div>
@@ -260,57 +357,59 @@ require_once __DIR__ . '/../../db.php';
     </div>
 
     <div id="piramide-view">
-        <canvas id="graficoPiramide"></canvas>
+        <div class="chart-controls">
+            <label class="control-label">Análise por:</label>
+            <div class="price-toggle-container">
+                <span class="toggle-text b2b">Preço B2B</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-tipo-preco">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-text b2c">Preço B2C</span>
+            </div>
+        </div>
+
+        <div class="chart-canvas-wrapper">
+            <canvas id="graficoPiramide"></canvas>
+        </div>
     </div>
 
     <div id="configModal" class="modal">
-        <div class="modal-content" style="width: 600px;"> 
+        <div class="modal-content" style="width: 500px;"> 
             <span class="close-modal" id="close-modal">&times;</span>
-            <h2 style="margin: 0 0 5px 0; font-size: 1.4em;">Configurar Faixas</h2>
-            <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 0.75em; font-weight: bold; display: block; margin-bottom: 5px;">1. SELECIONE O GRUPO</label>
-                <select id="modal-filter-grupo" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--green-primary); font-weight: bold;"></select>
+            <h2 style="margin: 0 0 10px 0; font-size: 1.2em; text-transform: uppercase;">Configurar Faixas</h2>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.8em; font-weight: bold; display: block; margin-bottom: 4px;">GRUPO</label>
+                <select id="modal-filter-grupo" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; font-size: 0.9em;"></select>
             </div>
-            <div id="msg-selecione-filtros" style="text-align: center; color: #757575; padding: 20px 0; font-style: italic;">
-                ⚠️ Selecione um Grupo para carregar as Linhas vinculadas.
+            <div id="msg-selecione-filtros" style="text-align: center; color: #888; padding: 20px 0; font-style: italic; font-size: 0.9em;">
+                ⚠️ Selecione um Grupo para carregar as Linhas.
             </div>
             <div id="config-faixas-area" style="display: none;">
-                <div style="display: flex; font-size: 0.7em; font-weight: bold; color: #666; margin-bottom: 10px; padding: 0 10px;">
-                    <div style="flex: 2;">LINHA</div>
-                    <div style="flex: 1.5; text-align: center;">ENTRADA (ATÉ)</div>
-                    <div style="flex: 1.5; text-align: center;">INTERMED. (ATÉ)</div>
-                    <div style="flex: 1; text-align: center;">PREMIUM</div>
-                </div>
-                <div id="linhas-dinamicas-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #eee; padding: 10px; border-radius: 4px;"></div>
-                <div class="modal-footer" style="text-align: right;">
-                    <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%; border: none; padding: 15px; font-size: 1em;">Salvar Todas as Faixas do Grupo</button>
+                <div id="linhas-dinamicas-container" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #eee; padding: 5px; border-radius: 4px;"></div>
+                <div class="modal-footer">
+                    <button class="btn" id="btn-save-ranges" style="background-color: var(--green-primary); width: 100%; border: none; padding: 12px; font-size: 1em;">Salvar Faixas do Grupo</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="summaryModal" class="modal">
-        <div class="modal-content" style="width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="modal-content" style="width: 850px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; padding: 15px;">
             <span class="close-modal" id="close-summary">&times;</span>
-            <h2 style="margin: 0;">Resumo do Mix</h2>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-            <div style="background: #f1f8e9; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary);">FILTRAR POR GRUPO:</label>
-                <select id="resumo-filter-grupo" style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
-                    <option value="TODOS">TODOS OS GRUPOS</option>
+            <h2 style="margin: 0 0 10px 0; font-size: 1.2em; text-transform: uppercase;">Resumo do Mix</h2>
+            <div style="background: #f9f9f9; padding: 8px; border-radius: 4px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #eee;">
+                <label style="font-size: 0.8em; font-weight: bold; color: #555;">FILTRAR GRUPO:</label>
+                <select id="resumo-filter-grupo" style="flex-grow: 1; padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; font-size: 0.85em;">
+                    <option value="TODOS">TODOS</option>
                 </select>
+                <button id="btn-toggle-colecao" style="font-size: 0.75em; padding: 6px 12px; background-color: #777; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">➕ Expandir</button>
             </div>
-            <div style="text-align: right; margin-bottom: 5px;">
-                <button id="btn-toggle-colecao" style="font-size: 0.7em; padding: 6px 12px; background-color: #757575; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    ➕ Expandir Coleções
-                </button>
-            </div>
-            <div style="overflow-y: auto; overflow-x: auto; flex-grow: 1;">
+            <div style="overflow-y: auto; overflow-x: auto; flex-grow: 1; border: 1px solid #eee; border-radius: 4px;">
                 <table id="table-resumo">
                     <thead id="thead-resumo"></thead>
                     <tbody id="body-resumo"></tbody>
-                    <tfoot id="tfoot-resumo" style="position: sticky; bottom: 0; background: #757575; color: white; font-weight: bold;"></tfoot>
+                    <tfoot id="tfoot-resumo" style="position: sticky; bottom: 0; background: #666; color: white; font-weight: bold; z-index: 10;"></tfoot>
                 </table>
             </div>
         </div>

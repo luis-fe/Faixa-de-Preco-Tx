@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const listColecao = document.getElementById('list-colecao');
     const listLinha = document.getElementById('list-linha');
     const listGrupo = document.getElementById('list-grupo');
+    // Novo Seletor B2B/B2C (Toggle)
+    const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
 
     const modalConfig = document.getElementById('configModal');
     const modalSelGrupo = document.getElementById('modal-filter-grupo');
@@ -40,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewPiramide = document.getElementById('piramide-view');
 
     // ==========================================
-    // CONTROLE DAS ABAS
+    // CONTROLE DAS ABAS E SELETORES
     // ==========================================
     tabKanban.addEventListener('click', () => {
         tabKanban.classList.add('active');
@@ -60,6 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
             chartInstance.resize();
             chartInstance.update();
         }
+    });
+
+    // Listener para o botão ON/OFF (Toggle) B2B/B2C
+    toggleTipoPreco.addEventListener('change', () => {
+        // Quando muda, atualiza o Kanban (que por consequência atualiza o gráfico)
+        atualizarKanban();
     });
 
     // ==========================================
@@ -85,7 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         ref: p.referencia || 'N/A', desc: p.descricao || '', 
                         colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: p.grupo || 'GERAL',
                         subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', 
-                        preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
+                        // preco refere-se ao B2B vindo da planilha
+                        preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), 
+                        precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, eMax: parseFloat(p.faixa_entrada_max) || 0, iMax: parseFloat(p.faixa_inter_max) || 0
                     };
                 });
@@ -151,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const filtroAtual = resumoFilterGrupo.value || 'TODOS';
         const uniqueGrupos = [...new Set(produtosBase.map(d => d.grupo))].sort();
-        resumoFilterGrupo.innerHTML = '<option value="TODOS">TODOS OS GRUPOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
+        resumoFilterGrupo.innerHTML = '<option value="TODOS">TODOS</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
         
         if (uniqueGrupos.includes(filtroAtual)) {
             resumoFilterGrupo.value = filtroAtual;
@@ -159,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resumoFilterGrupo.value = 'TODOS';
         }
 
-        btnToggleColecao.innerText = modoColecao ? "➖ Ocultar Coleções" : "➕ Expandir Coleções";
+        btnToggleColecao.innerText = modoColecao ? "➖ Ocultar" : "➕ Expandir";
 
         atualizarDadosMatriz();
         window.ordenarMatriz(sortConfig.key, sortConfig.dir);
@@ -168,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnToggleColecao.onclick = () => {
         modoColecao = !modoColecao;
-        btnToggleColecao.innerText = modoColecao ? "➖ Ocultar Coleções" : "➕ Expandir Coleções";
+        btnToggleColecao.innerText = modoColecao ? "➖ Ocultar" : "➕ Expandir";
         renderizarMatrizHTML();
     };
 
@@ -260,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 theadHtml += `<th style="text-align: center;" onclick="ordenarMatriz('${c}')">${c} ↕️</th>`;
             });
         }
-        theadHtml += `<th style="text-align: center; width: 20%;" onclick="ordenarMatriz('total')">TOTAL PRODUTOS ↕️</th></tr>`;
+        theadHtml += `<th style="text-align: center; width: 20%;" onclick="ordenarMatriz('total')">TOTAL ↕️</th></tr>`;
         theadResumo.innerHTML = theadHtml;
 
         let totaisColunas = {};
@@ -282,20 +292,20 @@ document.addEventListener('DOMContentLoaded', () => {
             totalGeral += row.total;
             
             const linkTotalRow = `<a class="matrix-link" onclick="aplicarFiltroResumo('${esc(row.grupo)}', '${esc(row.linha)}', null); return false;">${row.total}</a>`;
-            tr += `<td style="text-align: center; background: #f1f8e9;">${linkTotalRow}</td></tr>`;
+            tr += `<td style="text-align: center; background: #f9f9f9;">${linkTotalRow}</td></tr>`;
             return tr;
         }).join('');
 
         const colspanBase = 2;
-        let tfootHtml = `<tr><td colspan="${colspanBase}" style="text-align: right; padding: 12px; font-size: 1.1em; border: 1px solid #616161;">TOTAL GERAL:</td>`;
+        let tfootHtml = `<tr><td colspan="${colspanBase}" style="text-align: right; padding: 10px; font-size: 1.1em;">TOTAL GERAL:</td>`;
         if (modoColecao) {
             colecoesAtuais.forEach(c => {
                 const linkTotalCol = `<a class="matrix-link-white" onclick="aplicarFiltroResumo(null, null, '${esc(c)}'); return false;">${totaisColunas[c]}</a>`;
-                tfootHtml += `<td style="text-align: center; padding: 12px; font-size: 1.1em; border: 1px solid #616161;">${linkTotalCol}</td>`;
+                tfootHtml += `<td style="text-align: center; padding: 10px; font-size: 1.1em;">${linkTotalCol}</td>`;
             });
         }
         const linkGrandTotal = `<a class="matrix-link-white" onclick="aplicarFiltroResumo(null, null, null); return false;">${totalGeral}</a>`;
-        tfootHtml += `<td style="text-align: center; padding: 12px; font-size: 1.2em; border: 1px solid #616161;">${linkGrandTotal}</td></tr>`;
+        tfootHtml += `<td style="text-align: center; padding: 10px; font-size: 1.2em;">${linkGrandTotal}</td></tr>`;
         tfootResumo.innerHTML = tfootHtml;
     }
 
@@ -305,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
         const preencher = (container, data) => {
-            container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 8px; color: var(--green-primary);"><input type="checkbox" class="select-all" checked> <strong>Selecionar Tudo</strong></label>` +
+            container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 6px; color: var(--green-primary); font-weight: bold;"><input type="checkbox" class="select-all" checked> Selecionar Tudo</label>` +
                 data.map(val => `<label><input type="checkbox" class="item-checkbox" value="${val}" checked> ${val}</label>`).join('');
             
             const chkAll = container.querySelector('.select-all');
@@ -353,8 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. LÓGICA MESTRA DO KANBAN E TAGS
     // ==========================================
     function atualizarKanban() {
+        if (!selPlano.value) return; // Segurança caso chame sem plano carregado
+
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fCol = getChecked(listColecao), fLin = getChecked(listLinha), fGru = getChecked(listGrupo);
+
+        // Define se a análise atual é B2C (baseado no Toggle)
+        const analisarB2C = toggleTipoPreco.checked;
 
         const validCol = new Set(produtosBase.filter(p => fLin.includes(p.linha) && fGru.includes(p.grupo)).map(p => p.colecao));
         const validLin = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fGru.includes(p.grupo)).map(p => p.linha));
@@ -364,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const setSub = (id, arr) => {
             const el = document.getElementById(id);
-            if (arr.length === 1) el.innerText = `(${arr[0]})`; else if (arr.length > 1) el.innerText = `(Vários itens)`; else el.innerText = `(Nenhum)`;
+            if (arr.length === 1) el.innerText = `(${arr[0]})`; else if (arr.length > 1) el.innerText = `(...)`; else el.innerText = `(Nenhum)`;
         };
         setSub('sub-colecao', effCol); setSub('sub-linha', effLin); setSub('sub-grupo', effGru);
 
@@ -373,10 +388,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filtrados = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
+        // Ordena sempre pelo preço B2B para consistência no Kanban
         filtrados.sort((a, b) => a.preco - b.preco);
 
-        // Renderiza o Gráfico Pirâmide de forma sincronizada com o filtro!
-        renderizarGraficoPiramide(filtrados);
+        // ==========================================
+        // CHAMADA ATUALIZADA DO GRÁFICO (Passando o parâmetro de análise)
+        // ==========================================
+        renderizarGraficoPiramide(filtrados, analisarB2C);
 
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
         Object.values(cols).forEach(c => c.innerHTML = '');
@@ -385,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(p => {
             const card = document.createElement('div'); card.className = 'card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
+            // --- CORREÇÃO DO "Mkt" PARA "Mkp" MANTIDA ---
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
 
             let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
@@ -404,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     corFundo = '#4CAF50'; 
                     corTexto = '#ffffff';
                 } else if (txtMinusculo.includes('best') || txtMinusculo.includes('saller') || txtMinusculo.includes('seller')) {
-                    // --- CORRIGIDO AQUI: Aspas fechadas na palavra 'best' ---
+                    // --- CORREÇÃO DAS ASPAS MANTIDA AQUI ---
                     corFundo = '#FF9800'; 
                     corTexto = '#ffffff';
                 }
@@ -437,15 +456,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 6. FUNÇÃO DO GRÁFICO DA PIRÂMIDE
+    // 6. FUNÇÃO DO GRÁFICO DA PIRÂMIDE (DINÂMICA)
     // ==========================================
-    function renderizarGraficoPiramide(filtrados) {
+    function renderizarGraficoPiramide(filtrados, analisarB2C) {
         const ctx = document.getElementById('graficoPiramide').getContext('2d');
 
-        // Agrupar produtos por faixas de preço exato
+        // Configurações baseadas no tipo de análise (B2B ou B2C)
+        // USER REQUEST: Título solicitado "Preço B2b x Nº Produtos"
+        const tituloGrafico = analisarB2C ? 'Preço B2c x Nº Produtos' : 'Preço B2b x Nº Produtos';
+        const corPrincipal = analisarB2C ? '#673AB7' : '#25382D'; // Roxo B2C vs Verde B2B
+        const corBorda = analisarB2C ? '#9575CD' : '#4CAF50';
+        
+        // Define qual propriedade de preço ler do objeto p (preco refere-se a B2B)
+        const chavePrecoAtiva = analisarB2C ? 'precoB2C' : 'preco';
+
+        // Agrupar produtos por faixas de preço exato (baseado na seleção B2B/B2C)
         const contagemPorPreco = {};
         filtrados.forEach(p => {
-            const precoStr = p.preco.toFixed(2);
+            const valorPreco = p[chavePrecoAtiva];
+            
+            // Pula produtos sem preço preenchido na análise atual
+            if (!valorPreco || valorPreco <= 0) return;
+
+            const precoStr = valorPreco.toFixed(2);
             contagemPorPreco[precoStr] = (contagemPorPreco[precoStr] || 0) + 1;
         });
 
@@ -458,48 +491,76 @@ document.addEventListener('DOMContentLoaded', () => {
             chartInstance.destroy();
         }
 
+        if (labelsOrdenadas.length === 0) {
+            // Se não houver dados para exibir (ex: análise B2C sem preços B2C)
+            ctx.font = "16px sans-serif";
+            ctx.fillStyle = "#888";
+            ctx.textAlign = "center";
+            ctx.fillText("Sem dados de preço para esta análise.", ctx.canvas.width/2, ctx.canvas.height/2);
+            return;
+        }
+
         chartInstance = new Chart(ctx, {
             type: 'bar', // Barra horizontal cria o formato de pirâmide deitada
             data: {
                 labels: labelsComSifrao,
                 datasets: [{
-                    label: 'Quantidade de Produtos',
                     data: dados,
-                    backgroundColor: '#25382D', // Verde escuro elegante
-                    borderColor: '#4CAF50',
+                    backgroundColor: corPrincipal, // Dinâmico
+                    borderColor: corBorda, // Dinâmico
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 4,
+                    barPercentage: 0.8, // Barras ligeiramente mais finas para parecer mais pirâmide
+                    categoryPercentage: 0.9
                 }]
             },
             options: {
                 indexAxis: 'y', // Inverte os eixos para o gráfico ficar deitado (Y=Preço, X=Qtd)
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 10, bottom: 10, left: 10, right: 30 } // Espaço para rótulos na direita
+                },
                 plugins: {
+                    // USER REQUEST: Título Principal solicitado
+                    title: {
+                        display: true,
+                        text: tituloGrafico,
+                        color: corPrincipal,
+                        font: { size: 16, weight: 'bold', family: 'Segoe UI' },
+                        padding: { bottom: 15 }
+                    },
                     legend: { display: false },
-                    // --- CONFIGURAÇÃO DOS RÓTULOS (DENTRO E AO CENTRO) ---
+                    // --- CONFIGURAÇÃO DOS RÓTULOS (MANTIDOS DENTRO E AO CENTRO) ---
                     datalabels: {
                         color: 'white', // Texto branco para contrastar
                         anchor: 'center', // Fixa o ponto de ancoragem no centro da barra
                         align: 'center',  // Alinha o texto centralizado no ponto de ancoragem
                         font: {
                             weight: 'bold',
-                            size: 13
+                            size: 12,
+                            family: 'Segoe UI'
                         },
                         formatter: function(value) {
                             return value; // Apenas mostra o número puro
                         }
                     },
                     tooltip: {
+                        backgroundColor: corPrincipal,
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
                         callbacks: {
+                            title: function(context) {
+                                return 'Preço: ' + context[0].label;
+                            },
                             label: function(context) {
-                                return context.raw + ' produtos nesse preço';
+                                return context.raw + ' produtos sugeridos';
                             }
                         }
                     }
                 },
                 scales: {
-                    // --- RETIRA O EIXO X (linhas e números) AQUI ---
+                    // --- RETIRA O EIXO X (linhas e números) MANTIDO ---
                     x: {
                         display: false, // Oculta o eixo X completamente
                         beginAtZero: true
@@ -507,10 +568,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     y: {
                         grid: { display: false }, // Limpa as linhas de grade do Y
                         ticks: {
-                            color: '#25382D',
-                            font: { weight: 'bold', size: 12 }
+                            color: '#444',
+                            font: { weight: 'bold', size: 11, family: 'Segoe UI' },
+                            padding: 8
                         },
-                        title: { display: true, text: 'PREÇO SUGERIDO (B2B)', font: { weight: 'bold' } }
+                        // USER REQUEST: Tira legenda do eixo y solicitado
+                        title: { display: false } 
                     }
                 }
             }
@@ -518,11 +581,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 7. MODAL DE GRUPO DINÂMICO E SALVAMENTO
+    // 7. MODAL DE GRUPO DINÂMICO E SALVAMENTO... (mantido igual)
     // ==========================================
     function popularGrupoModal() {
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
-        modalSelGrupo.innerHTML = '<option value="" disabled selected>Selecione o Grupo...</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
+        modalSelGrupo.innerHTML = '<option value="" disabled selected>Selecione...</option>' + uniqueGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
 
     modalSelGrupo.addEventListener('change', () => {
@@ -532,12 +595,15 @@ document.addEventListener('DOMContentLoaded', () => {
         linhasDoGrupo.forEach(linha => {
             const amostra = produtosBase.find(p => p.grupo === grupoSel && p.linha === linha);
             const divRow = document.createElement('div');
-            divRow.style = "display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;";
-            divRow.innerHTML = `<div style="flex: 2; font-weight: bold; font-size: 0.85em;">${linha}</div>
-                <div style="flex: 1.5;"><input type="number" step="0.01" class="in-entrada" data-linha="${linha}" value="${amostra.eMax.toFixed(2)}" style="width: 100%; padding: 5px;"></div>
-                <div style="flex: 1.5;"><input type="number" step="0.01" class="in-inter" data-linha="${linha}" value="${amostra.iMax.toFixed(2)}" style="width: 100%; padding: 5px;"></div>
+            divRow.style = "display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #f5f5f5;";
+            divRow.innerHTML = `<div style="flex: 2; font-weight: bold; font-size: 0.8em; color: #333;">${linha}</div>
+                <div style="flex: 1.5;"><input type="number" step="0.01" class="in-entrada" data-linha="${linha}" value="${amostra.eMax.toFixed(2)}" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em;"></div>
+                <div style="flex: 1.5;"><input type="number" step="0.01" class="in-inter" data-linha="${linha}" value="${amostra.iMax.toFixed(2)}" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em;"></div>
                 <div style="flex: 1; text-align: center; font-size: 0.75em; color: var(--green-primary); font-weight: bold;">> <span class="lbl-premium">${amostra.iMax.toFixed(2)}</span></div>`;
-            divRow.querySelector('.in-inter').addEventListener('input', (e) => { divRow.querySelector('.lbl-premium').innerText = e.target.value; });
+            divRow.querySelector('.in-inter').addEventListener('input', (e) => { 
+                let val = parseFloat(e.target.value) || 0;
+                divRow.querySelector('.lbl-premium').innerText = val.toFixed(2); 
+            });
             containerLinhasDinamicas.appendChild(divRow);
         });
         document.getElementById('msg-selecione-filtros').style.display = 'none'; document.getElementById('config-faixas-area').style.display = 'block';
@@ -545,7 +611,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnSave.onclick = async () => {
         const plano = selPlano.value, grupo = modalSelGrupo.value, inputs = containerLinhasDinamicas.querySelectorAll('.in-entrada');
-        
+        if(!plano || !grupo) return;
+
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         let tempBackup = { 
             col: getChecked('list-colecao'), colAll: document.querySelector('#list-colecao .select-all').checked,
@@ -555,14 +622,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!backupFiltros) backupFiltros = tempBackup;
 
-        btnSave.innerText = "Salvando..."; btnSave.disabled = true;
+        btnSave.innerText = "Salvando..."; btnSave.disabled = true; btnSave.style.opacity = 0.7;
         for (let inputE of inputs) {
             const linha = inputE.dataset.linha, vEntrada = inputE.value, vInter = containerLinhasDinamicas.querySelector(`.in-inter[data-linha="${linha}"]`).value;
+            // Salva as 3 faixas (Entrada Máx, Inter Máx, Premium começa após Inter Máx)
             await fetch('salvar_faixas.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plano, linha, grupo, valorEntrada: vEntrada, valorInter: vInter, valorPremium: vInter }) });
         }
         modalConfig.style.display = 'none'; 
-        selPlano.dispatchEvent(new Event('change')); 
-        btnSave.innerText = "Salvar Todas as Faixas do Grupo"; btnSave.disabled = false;
+        selPlano.dispatchEvent(new Event('change')); // Recarrega tudo
+        btnSave.innerText = "Salvar Faixas do Grupo"; btnSave.disabled = false; btnSave.style.opacity = 1;
     };
 
     // ==========================================
@@ -573,21 +641,25 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.select-all').forEach(chk => chk.checked = true);
         document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
         document.getElementById('resumo-filter-grupo').value = 'TODOS';
+        toggleTipoPreco.checked = false; // Volta para B2B
         atualizarKanban();
     });
 
     document.getElementById('close-modal').onclick = () => modalConfig.style.display = 'none';
     document.getElementById('close-summary').onclick = () => modalSummary.style.display = 'none';
+    
     document.getElementById('btn-config').onclick = () => {
-        if (!selPlano.value) { alert("Selecione o plano primeiro"); return; }
-        const fGru = Array.from(listGrupo.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
+        if (!selPlano.value) { alert("Selecione o plano primeiro!"); return; }
         const validGru = new Set(produtosBase.filter(p => Array.from(listColecao.querySelectorAll('.item-checkbox:checked')).map(c=>c.value).includes(p.colecao) && Array.from(listLinha.querySelectorAll('.item-checkbox:checked')).map(c=>c.value).includes(p.linha)).map(p => p.grupo));
-        const effGru = fGru.filter(x => validGru.has(x));
+        const fGruChecked = Array.from(listGrupo.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
+        const effGru = fGruChecked.filter(x => validGru.has(x));
+
         modalSelGrupo.value = "";
         if (effGru.length === 1) { modalSelGrupo.value = effGru[0]; modalSelGrupo.dispatchEvent(new Event('change')); }
         else { document.getElementById('msg-selecione-filtros').style.display = 'block'; document.getElementById('config-faixas-area').style.display = 'none'; }
         modalConfig.style.display = 'block';
     };
+
     window.onclick = (e) => { if (e.target == modalConfig) modalConfig.style.display = 'none'; if (e.target == modalSummary) modalSummary.style.display = 'none'; };
     function limparFiltros() { produtosBase = []; atualizarKanban(); }
 });
