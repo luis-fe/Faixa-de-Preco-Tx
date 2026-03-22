@@ -4,8 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let dadosMatriz = []; 
     let sortConfig = { key: 'padrao', dir: 'desc' };
     let modoColecao = false;
-
-    // Variável para guardar o estado dos filtros durante o salvamento
     let backupFiltros = null;
 
     // --- ELEMENTOS ---
@@ -44,7 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         return parseFloat(limpo) || 0;
                     };
                     return {
-                        ref: p.referencia || 'N/A', desc: p.descricao || '', colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: p.grupo || 'GERAL',
+                        ref: p.referencia || 'N/A', desc: p.descricao || '', 
+                        colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: p.grupo || 'GERAL',
+                        subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', // CAPTURA A SUBCOLEÇÃO
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, eMax: parseFloat(p.faixa_entrada_max) || 0, iMax: parseFloat(p.faixa_inter_max) || 0
                     };
@@ -52,10 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 gerarFiltrosCheckboxes();
 
-                // SE EXISTE BACKUP, RESTAURA OS FILTROS ANTES DE DESENHAR O KANBAN
                 if (backupFiltros) {
                     restaurarFiltros(backupFiltros);
-                    backupFiltros = null; // Limpa o backup após o uso
+                    backupFiltros = null; 
                 }
 
                 popularGrupoModal();
@@ -165,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderizarMatrizHTML() {
         const esc = (str) => str ? str.replace(/'/g, "\\'").replace(/"/g, '&quot;') : '';
 
-        // --- THEAD ---
         let theadHtml = `<tr>
             <th onclick="ordenarMatriz('grupo')" style="width: 25%;">GRUPO ↕️</th>
             <th onclick="ordenarMatriz('linha')" style="width: 35%;">LINHA ↕️</th>`;
@@ -178,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
         theadHtml += `<th style="text-align: center; width: 20%;" onclick="ordenarMatriz('total')">TOTAL PRODUTOS ↕️</th></tr>`;
         theadResumo.innerHTML = theadHtml;
 
-        // --- TBODY ---
         let totaisColunas = {};
         colecoesAtuais.forEach(c => totaisColunas[c] = 0);
         let totalGeral = 0;
@@ -202,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return tr;
         }).join('');
 
-        // --- TFOOT ---
         const colspanBase = 2;
         let tfootHtml = `<tr><td colspan="${colspanBase}" style="text-align: right; padding: 12px; font-size: 1.1em; border: 1px solid #616161;">TOTAL GERAL:</td>`;
         if (modoColecao) {
@@ -254,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. LÓGICA MESTRA DO KANBAN E BI
+    // 4. LÓGICA MESTRA DO KANBAN E INJEÇÃO DA TAG
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -281,12 +277,23 @@ document.addEventListener('DOMContentLoaded', () => {
         let cont = { e: 0, i: 0, p: 0 };
 
         filtrados.forEach(p => {
-            const card = document.createElement('div'); card.className = 'card';
+            const card = document.createElement('div'); 
+            card.className = 'card';
+            
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkt: ${p.mkp.toFixed(2)}</span>` : '';
+            
+            // INJETA A TAG SE ELA EXISTIR
+            let badgeHtml = '';
+            if (p.subcolecao && p.subcolecao.trim() !== '') {
+                badgeHtml = `<div class="subcolecao-badge">${p.subcolecao}</div>`;
+            }
 
-            card.innerHTML = `<div class="info-container"><span class="ref-code">${p.ref}</span><span class="description">${p.desc}</span></div>
-                <div class="price-container"><div class="b2b-row"><span class="price">R$ ${p.preco.toFixed(2)}</span>${mkpHtml}</div>${b2cHtml}</div>`;
+            card.innerHTML = `
+                <div class="info-container"><span class="ref-code">${p.ref}</span><span class="description">${p.desc}</span></div>
+                <div class="price-container"><div class="b2b-row"><span class="price">R$ ${p.preco.toFixed(2)}</span>${mkpHtml}</div>${b2cHtml}</div>
+                ${badgeHtml}
+            `;
 
             if (p.preco <= p.eMax) { cols.entrada.appendChild(card); cont.e++; }
             else if (p.preco <= p.iMax) { cols.inter.appendChild(card); cont.i++; }
@@ -332,13 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSave.onclick = async () => {
         const plano = selPlano.value, grupo = modalSelGrupo.value, inputs = containerLinhasDinamicas.querySelectorAll('.in-entrada');
         
-        // CRIA O BACKUP DOS FILTROS ATUAIS ANTES DE SALVAR
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-        backupFiltros = {
-            col: getChecked('list-colecao'),
-            lin: getChecked('list-linha'),
-            gru: getChecked('list-grupo')
-        };
+        backupFiltros = { col: getChecked('list-colecao'), lin: getChecked('list-linha'), gru: getChecked('list-grupo') };
 
         btnSave.innerText = "Salvando..."; btnSave.disabled = true;
         for (let inputE of inputs) {
@@ -346,10 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetch('salvar_faixas.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plano, linha, grupo, valorEntrada: vEntrada, valorInter: vInter, valorPremium: vInter }) });
         }
         modalConfig.style.display = 'none'; 
-        
-        // Dispara a busca que vai reconstruir a tela (e usar o backup)
         selPlano.dispatchEvent(new Event('change'));
-        
         btnSave.innerText = "Salvar Todas as Faixas do Grupo"; btnSave.disabled = false;
     };
 
