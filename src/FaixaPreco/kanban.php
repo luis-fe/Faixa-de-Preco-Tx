@@ -44,10 +44,10 @@ require_once __DIR__ . '/../../db.php';
             position: relative; z-index: 100;
         }
 
-        /* NAVEGAÇÃO SUPERIOR (Ajustada: Padding mínimo e sem frames) */
+        /* NAVEGAÇÃO SUPERIOR */
         .top-nav {
             background-color: var(--white);
-            padding: 3px 20px; /* Padding vertical mínimo */
+            padding: 3px 20px; 
             display: flex;
             gap: 8px;
             border-bottom: 1px solid #ccc;
@@ -58,12 +58,12 @@ require_once __DIR__ . '/../../db.php';
             background: none; 
             border: none;
             color: var(--green-primary); 
-            padding: 2px 8px; /* Padding extremamente reduzido */
+            padding: 2px 8px; 
             border-radius: 8px; 
             font-weight: bold; 
             cursor: pointer;
             transition: 0.3s; 
-            font-size: 0.68em; /* Fonte ligeiramente menor */
+            font-size: 0.68em; 
             text-transform: uppercase;
             letter-spacing: 0.5px;
             opacity: 0.8;
@@ -130,10 +130,11 @@ require_once __DIR__ . '/../../db.php';
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .kanban-header { background-color: var(--green-primary); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-medium); }
+        /* --- COR DOS CABEÇALHOS DO KANBAN VOLTOU PARA O VERDE MÉDIO --- */
+        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-primary); }
         .kanban-header h3 { margin: 0 0 3px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }
-        .range-info { font-size: 0.75em; opacity: 0.8; display: block; margin-bottom: 3px;}
-        .mix-info { display: block; font-size: 1em; font-weight: bold; color: var(--green-light); }
+        .range-info { font-size: 0.75em; opacity: 0.9; display: block; margin-bottom: 3px; color: #fff;}
+        .mix-info { display: block; font-size: 1em; font-weight: bold; color: var(--white); text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
         
         .kanban-cards {
             padding: 10px; overflow-y: auto; flex-grow: 1; background-color: #f5f5f5;
@@ -166,103 +167,82 @@ require_once __DIR__ . '/../../db.php';
         }
 
         /* ==========================================
-           VISÃO PIRÂMIDE (Ajustada para 80% e Centralizada)
+           VISÃO PIRÂMIDE (Layout Dividido Esquerda/Direita)
            ========================================== */
         #piramide-view {
-            display: none; 
-            width: 80%; /* <-- LARGURA 80% SOLICITADA */
-            margin: 20px auto; /* <-- CENTRALIZADO HORA horizontalmente */
+            display: none; /* É trocado para flex pelo JS */
+            flex-direction: row;
+            gap: 20px;
+            margin: 15px 20px;
             padding: 15px; 
             background: white; 
             border-radius: 8px; 
             border: 1px solid #ddd; 
-            height: calc(100vh - 210px); 
+            height: calc(100vh - 165px); 
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: relative;
-            box-sizing: border-box; /* Garante que padding não aumente a largura */
+            box-sizing: border-box;
+        }
+
+        /* Painel Esquerdo (Gráfico e Botão) */
+        .piramide-left {
+            flex: 6.5; /* Ocupa 65% do espaço */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Painel Direito (Tabela Nova) */
+        .piramide-right {
+            flex: 3.5; /* Ocupa 35% do espaço */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border-left: 1px solid #eee;
+            padding-left: 15px;
         }
 
         /* Área do Botão Seletor (Toggle) */
         .chart-controls {
             display: flex;
-            justify-content: center;
+            justify-content: flex-start; /* <-- ALINHADO À ESQUERDA AQUI */
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
             gap: 15px;
         }
 
-        .control-label {
-            font-size: 0.85em;
-            font-weight: bold;
-            color: #555;
-        }
+        .control-label { font-size: 0.85em; font-weight: bold; color: #555; }
 
-        /* Container do Switch */
         .price-toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #f5f5f5;
-            padding: 5px 15px;
-            border-radius: 20px;
-            border: 1px solid #ddd;
+            display: flex; align-items: center; gap: 10px;
+            background: #f5f5f5; padding: 5px 15px;
+            border-radius: 20px; border: 1px solid #ddd;
         }
 
-        .toggle-text {
-            font-size: 0.8em;
-            font-weight: bold;
-            transition: 0.3s;
-        }
+        .toggle-text { font-size: 0.8em; font-weight: bold; transition: 0.3s; }
         .toggle-text.b2b { color: var(--green-primary); }
-        .toggle-text.b2c { color: #999; } /* Apagado inicialmente */
+        .toggle-text.b2c { color: #999; }
 
-        /* Estilo do Switch (O Botão ON/OFF) */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 20px;
-        }
-
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--green-primary); transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
 
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--green-primary); /* Cor B2B (Padrão) */
-            transition: .4s;
-            border-radius: 20px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 14px; width: 14px;
-            left: 3px; bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        /* Quando ATIVADO (vai para B2C) */
         input:checked + .slider { background-color: var(--purple-b2c); }
         input:checked + .slider:before { transform: translateX(20px); }
-
-        /* Lógica de cores dos textos ao lado */
         input:checked ~ .toggle-text.b2b { color: #999; }
         input:checked ~ .toggle-text.b2c { color: var(--purple-b2c); }
         
-        /* Container do Canvas para garantir que ocupe o resto da altura */
-        .chart-canvas-wrapper {
-            width: 100%;
-            height: calc(100% - 60px); /* Desconta o espaço dos controles */
-            position: relative;
-        }
+        .chart-canvas-wrapper { width: 100%; flex-grow: 1; position: relative; }
 
-        /* Estilos de Modais (mantidos iguais) */
+        /* Estilo da Nova Tabela Lateral */
+        #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444;}
+        #side-summary-table td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+        #side-summary-table tbody tr:hover { background-color: #e8f5e9; }
+
+        /* Estilos de Modais */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
         .modal-content { background: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; border: 2px solid var(--green-primary); position: relative;}
         .close-modal { position: absolute; top: 8px; right: 12px; font-size: 22px; cursor: pointer; color: var(--green-primary); font-weight: bold; opacity: 0.7; }
@@ -357,21 +337,44 @@ require_once __DIR__ . '/../../db.php';
     </div>
 
     <div id="piramide-view">
-        <div class="chart-controls">
-            <label class="control-label">Análise por:</label>
-            <div class="price-toggle-container">
-                <span class="toggle-text b2b">Preço B2B</span>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-tipo-preco">
-                    <span class="slider"></span>
-                </label>
-                <span class="toggle-text b2c">Preço B2C</span>
+        
+        <div class="piramide-left">
+            <div class="chart-controls">
+                <label class="control-label">Análise por:</label>
+                <div class="price-toggle-container">
+                    <span class="toggle-text b2b">Preço B2B</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-tipo-preco">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-text b2c">Preço B2C</span>
+                </div>
+            </div>
+
+            <div class="chart-canvas-wrapper">
+                <canvas id="graficoPiramide"></canvas>
             </div>
         </div>
 
-        <div class="chart-canvas-wrapper">
-            <canvas id="graficoPiramide"></canvas>
+        <div class="piramide-right">
+            <h3 style="margin-top: 0; color: var(--green-primary); font-size: 1em; text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px solid var(--green-primary); padding-bottom: 5px;">
+                Tabela de Produtos
+            </h3>
+            <div style="overflow-y: auto; flex-grow: 1;">
+                <table id="side-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Grupo</th>
+                            <th>Linha</th>
+                            <th style="text-align: center;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
         </div>
+
     </div>
 
     <div id="configModal" class="modal">

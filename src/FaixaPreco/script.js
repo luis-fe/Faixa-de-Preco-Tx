@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let sortConfig = { key: 'padrao', dir: 'desc' };
     let modoColecao = false;
     let backupFiltros = null;
-    let chartInstance = null; // Variável para controlar o gráfico
+    let chartInstance = null; 
     
     let currentSyncTime = '--:--';
     let pollingInterval = null;
@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const listColecao = document.getElementById('list-colecao');
     const listLinha = document.getElementById('list-linha');
     const listGrupo = document.getElementById('list-grupo');
-    // Novo Seletor B2B/B2C (Toggle)
     const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
 
     const modalConfig = document.getElementById('configModal');
@@ -55,18 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
         tabPiramide.classList.add('active');
         tabKanban.classList.remove('active');
         viewKanban.style.display = 'none';
-        viewPiramide.style.display = 'block';
+        viewPiramide.style.display = 'flex'; // Mudado para Flex por causa do layout
         
-        // Garante que o gráfico seja redesenhado no tamanho correto ao abrir a aba
         if (chartInstance) {
             chartInstance.resize();
             chartInstance.update();
         }
     });
 
-    // Listener para o botão ON/OFF (Toggle) B2B/B2C
     toggleTipoPreco.addEventListener('change', () => {
-        // Quando muda, atualiza o Kanban (que por consequência atualiza o gráfico)
         atualizarKanban();
     });
 
@@ -93,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         ref: p.referencia || 'N/A', desc: p.descricao || '', 
                         colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: p.grupo || 'GERAL',
                         subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', 
-                        // preco refere-se ao B2B vindo da planilha
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), 
                         precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, eMax: parseFloat(p.faixa_entrada_max) || 0, iMax: parseFloat(p.faixa_inter_max) || 0
@@ -154,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. MATRIZ DE RESUMO E CLIQUE NOS LINKS
+    // 3. MATRIZ DE RESUMO KANBAN (Botão Resumo Mix)
     // ==========================================
     btnAbrirResumo.onclick = () => {
         if (produtosBase.length === 0) { alert("Selecione um plano primeiro!"); return; }
@@ -363,12 +358,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. LÓGICA MESTRA DO KANBAN E TAGS
     // ==========================================
     function atualizarKanban() {
-        if (!selPlano.value) return; // Segurança caso chame sem plano carregado
+        if (!selPlano.value) return; 
 
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fCol = getChecked(listColecao), fLin = getChecked(listLinha), fGru = getChecked(listGrupo);
-
-        // Define se a análise atual é B2C (baseado no Toggle)
         const analisarB2C = toggleTipoPreco.checked;
 
         const validCol = new Set(produtosBase.filter(p => fLin.includes(p.linha) && fGru.includes(p.grupo)).map(p => p.colecao));
@@ -388,13 +381,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filtrados = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
-        // Ordena sempre pelo preço B2B para consistência no Kanban
         filtrados.sort((a, b) => a.preco - b.preco);
 
-        // ==========================================
-        // CHAMADA ATUALIZADA DO GRÁFICO (Passando o parâmetro de análise)
-        // ==========================================
+        // Chama as funções da nova tela Pirâmide
         renderizarGraficoPiramide(filtrados, analisarB2C);
+        atualizarTabelaLateral(filtrados);
 
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
         Object.values(cols).forEach(c => c.innerHTML = '');
@@ -403,7 +394,6 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(p => {
             const card = document.createElement('div'); card.className = 'card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
-            // --- CORREÇÃO DO "Mkt" PARA "Mkp" MANTIDA ---
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
 
             let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
@@ -411,22 +401,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (nomeTag) {
                 let txtMinusculo = nomeTag.toLowerCase();
-                let corFundo = '#757575'; 
-                let corTexto = '#ffffff'; 
+                let corFundo = '#757575'; let corTexto = '#ffffff'; 
                 
-                if (txtMinusculo.includes('starter') || txtMinusculo.includes('estoque futuro')) {
-                    corFundo = '#9E9E9E'; 
-                } else if (txtMinusculo.includes('lancamento') || txtMinusculo.includes('lançamento')) {
-                    corFundo = '#FBC02D'; 
-                    corTexto = '#ffffff';
-                } else if (txtMinusculo.includes('reedicao') || txtMinusculo.includes('reedição')) {
-                    corFundo = '#4CAF50'; 
-                    corTexto = '#ffffff';
-                } else if (txtMinusculo.includes('best') || txtMinusculo.includes('saller') || txtMinusculo.includes('seller')) {
-                    // --- CORREÇÃO DAS ASPAS MANTIDA AQUI ---
-                    corFundo = '#FF9800'; 
-                    corTexto = '#ffffff';
-                }
+                if (txtMinusculo.includes('starter') || txtMinusculo.includes('estoque futuro')) corFundo = '#9E9E9E'; 
+                else if (txtMinusculo.includes('lancamento') || txtMinusculo.includes('lançamento')) corFundo = '#FBC02D'; 
+                else if (txtMinusculo.includes('reedicao') || txtMinusculo.includes('reedição')) corFundo = '#4CAF50'; 
+                else if (txtMinusculo.includes('best') || txtMinusculo.includes('saller') || txtMinusculo.includes('seller')) corFundo = '#FF9800'; 
 
                 badgeHtml = `<div class="subcolecao-badge" style="background-color: ${corFundo}; color: ${corTexto};">${nomeTag}</div>`;
             }
@@ -456,33 +436,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 6. FUNÇÃO DO GRÁFICO DA PIRÂMIDE (DINÂMICA)
+    // 6. FUNÇÕES DA TELA PIRÂMIDE (Gráfico e Tabela Lateral)
     // ==========================================
+    function atualizarTabelaLateral(filtrados) {
+        const tbody = document.querySelector('#side-summary-table tbody');
+        
+        // Agrupa os produtos que estão no filtro por Grupo e Linha
+        const mapa = {};
+        filtrados.forEach(p => {
+            const key = p.grupo + '|' + p.linha;
+            if (!mapa[key]) mapa[key] = { grupo: p.grupo, linha: p.linha, total: 0 };
+            mapa[key].total++;
+        });
+
+        // Transforma em array e ordena (Alfabético por Grupo, depois Linha)
+        const arrayResumo = Object.values(mapa);
+        arrayResumo.sort((a, b) => a.grupo.localeCompare(b.grupo) || a.linha.localeCompare(b.linha));
+
+        // Desenha as linhas na tabela HTML
+        tbody.innerHTML = arrayResumo.map(item => `
+            <tr>
+                <td>${item.grupo}</td>
+                <td><strong>${item.linha}</strong></td>
+                <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
+            </tr>
+        `).join('');
+    }
+
     function renderizarGraficoPiramide(filtrados, analisarB2C) {
         const ctx = document.getElementById('graficoPiramide').getContext('2d');
 
-        // Configurações baseadas no tipo de análise (B2B ou B2C)
-        // USER REQUEST: Título solicitado "Preço B2b x Nº Produtos"
         const tituloGrafico = analisarB2C ? 'Preço B2c x Nº Produtos' : 'Preço B2b x Nº Produtos';
-        const corPrincipal = analisarB2C ? '#673AB7' : '#25382D'; // Roxo B2C vs Verde B2B
-        const corBorda = analisarB2C ? '#9575CD' : '#4CAF50';
-        
-        // Define qual propriedade de preço ler do objeto p (preco refere-se a B2B)
         const chavePrecoAtiva = analisarB2C ? 'precoB2C' : 'preco';
 
-        // Agrupar produtos por faixas de preço exato (baseado na seleção B2B/B2C)
         const contagemPorPreco = {};
         filtrados.forEach(p => {
             const valorPreco = p[chavePrecoAtiva];
-            
-            // Pula produtos sem preço preenchido na análise atual
             if (!valorPreco || valorPreco <= 0) return;
 
             const precoStr = valorPreco.toFixed(2);
             contagemPorPreco[precoStr] = (contagemPorPreco[precoStr] || 0) + 1;
         });
 
-        // Ordena os preços do MAIOR (topo) para o MENOR (base), formato clássico de pirâmide/funil
         const labelsOrdenadas = Object.keys(contagemPorPreco).sort((a, b) => parseFloat(b) - parseFloat(a));
         const dados = labelsOrdenadas.map(l => contagemPorPreco[l]);
         const labelsComSifrao = labelsOrdenadas.map(l => 'R$ ' + l.replace('.', ','));
@@ -492,87 +487,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (labelsOrdenadas.length === 0) {
-            // Se não houver dados para exibir (ex: análise B2C sem preços B2C)
             ctx.font = "16px sans-serif";
             ctx.fillStyle = "#888";
             ctx.textAlign = "center";
-            ctx.fillText("Sem dados de preço para esta análise.", ctx.canvas.width/2, ctx.canvas.height/2);
+            ctx.fillText("Sem dados para exibir", ctx.canvas.width/2, ctx.canvas.height/2);
             return;
         }
 
         chartInstance = new Chart(ctx, {
-            type: 'bar', // Barra horizontal cria o formato de pirâmide deitada
+            type: 'bar',
             data: {
                 labels: labelsComSifrao,
                 datasets: [{
                     data: dados,
-                    backgroundColor: corPrincipal, // Dinâmico
-                    borderColor: corBorda, // Dinâmico
+                    backgroundColor: '#25382D', // SEMPRE VERDE ESCURO
+                    borderColor: '#4CAF50',
                     borderWidth: 1,
                     borderRadius: 4,
-                    barPercentage: 0.8, // Barras ligeiramente mais finas para parecer mais pirâmide
+                    barPercentage: 0.8, 
                     categoryPercentage: 0.9
                 }]
             },
             options: {
-                indexAxis: 'y', // Inverte os eixos para o gráfico ficar deitado (Y=Preço, X=Qtd)
+                indexAxis: 'y', 
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: {
-                    padding: { top: 10, bottom: 10, left: 10, right: 30 } // Espaço para rótulos na direita
-                },
+                layout: { padding: { top: 10, bottom: 10, left: 10, right: 30 } },
                 plugins: {
-                    // USER REQUEST: Título Principal solicitado
                     title: {
                         display: true,
                         text: tituloGrafico,
-                        color: corPrincipal,
+                        color: '#25382D',
                         font: { size: 16, weight: 'bold', family: 'Segoe UI' },
                         padding: { bottom: 15 }
                     },
                     legend: { display: false },
-                    // --- CONFIGURAÇÃO DOS RÓTULOS (MANTIDOS DENTRO E AO CENTRO) ---
+                    
+                    // --- REGRAS DOS RÓTULOS (DENTRO DA BARRA) ---
                     datalabels: {
-                        color: 'white', // Texto branco para contrastar
-                        anchor: 'center', // Fixa o ponto de ancoragem no centro da barra
-                        align: 'center',  // Alinha o texto centralizado no ponto de ancoragem
-                        font: {
-                            weight: 'bold',
-                            size: 12,
-                            family: 'Segoe UI'
-                        },
-                        formatter: function(value) {
-                            return value; // Apenas mostra o número puro
-                        }
+                        // Se for B2C o texto fica branco com fundo roxo (tipo uma tag) para não sumir no verde escuro. 
+                        // Se for B2B fica apenas o texto branco puro.
+                        color: '#fff', 
+                        backgroundColor: analisarB2C ? '#673AB7' : null, 
+                        borderRadius: 4,
+                        padding: analisarB2C ? 4 : 0,
+                        anchor: 'center', 
+                        align: 'center',  
+                        font: { weight: 'bold', size: 12, family: 'Segoe UI' },
+                        formatter: function(value) { return value; }
                     },
                     tooltip: {
-                        backgroundColor: corPrincipal,
+                        backgroundColor: analisarB2C ? '#673AB7' : '#25382D',
                         titleFont: { size: 13, weight: 'bold' },
                         bodyFont: { size: 12 },
                         callbacks: {
-                            title: function(context) {
-                                return 'Preço: ' + context[0].label;
-                            },
-                            label: function(context) {
-                                return context.raw + ' produtos sugeridos';
-                            }
+                            title: function(context) { return 'Preço: ' + context[0].label; },
+                            label: function(context) { return context.raw + ' produtos sugeridos'; }
                         }
                     }
                 },
                 scales: {
-                    // --- RETIRA O EIXO X (linhas e números) MANTIDO ---
-                    x: {
-                        display: false, // Oculta o eixo X completamente
-                        beginAtZero: true
-                    },
+                    x: { display: false, beginAtZero: true },
                     y: {
-                        grid: { display: false }, // Limpa as linhas de grade do Y
-                        ticks: {
-                            color: '#444',
-                            font: { weight: 'bold', size: 11, family: 'Segoe UI' },
-                            padding: 8
-                        },
-                        // USER REQUEST: Tira legenda do eixo y solicitado
+                        grid: { display: false },
+                        ticks: { color: '#444', font: { weight: 'bold', size: 11, family: 'Segoe UI' }, padding: 8 },
                         title: { display: false } 
                     }
                 }
@@ -581,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 7. MODAL DE GRUPO DINÂMICO E SALVAMENTO... (mantido igual)
+    // 7. MODAL DE GRUPO DINÂMICO E SALVAMENTO
     // ==========================================
     function popularGrupoModal() {
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
@@ -625,11 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSave.innerText = "Salvando..."; btnSave.disabled = true; btnSave.style.opacity = 0.7;
         for (let inputE of inputs) {
             const linha = inputE.dataset.linha, vEntrada = inputE.value, vInter = containerLinhasDinamicas.querySelector(`.in-inter[data-linha="${linha}"]`).value;
-            // Salva as 3 faixas (Entrada Máx, Inter Máx, Premium começa após Inter Máx)
             await fetch('salvar_faixas.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plano, linha, grupo, valorEntrada: vEntrada, valorInter: vInter, valorPremium: vInter }) });
         }
         modalConfig.style.display = 'none'; 
-        selPlano.dispatchEvent(new Event('change')); // Recarrega tudo
+        selPlano.dispatchEvent(new Event('change')); 
         btnSave.innerText = "Salvar Faixas do Grupo"; btnSave.disabled = false; btnSave.style.opacity = 1;
     };
 
@@ -641,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.select-all').forEach(chk => chk.checked = true);
         document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
         document.getElementById('resumo-filter-grupo').value = 'TODOS';
-        toggleTipoPreco.checked = false; // Volta para B2B
+        toggleTipoPreco.checked = false; 
         atualizarKanban();
     });
 
