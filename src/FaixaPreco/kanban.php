@@ -14,9 +14,10 @@ require_once __DIR__ . '/../../db.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kanban de Produtos</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --green-primary: #25382D; /* <-- COR ATUALIZADA AQUI */
+            --green-primary: #25382D;
             --green-light: #E8F5E9;
             --green-medium: #4CAF50;
             --white: #FFFFFF;
@@ -28,6 +29,23 @@ require_once __DIR__ . '/../../db.php';
             color: var(--green-primary);
             margin: 0; padding: 0;
         }
+
+        /* NAVEGAÇÃO SUPERIOR */
+        .top-nav {
+            background-color: var(--white);
+            padding: 10px 20px;
+            display: flex;
+            gap: 15px;
+            border-bottom: 2px solid var(--green-primary);
+        }
+        .nav-tab {
+            background: none; border: 2px solid var(--green-primary);
+            color: var(--green-primary); padding: 8px 20px;
+            border-radius: 20px; font-weight: bold; cursor: pointer;
+            transition: 0.3s; font-size: 0.95em;
+        }
+        .nav-tab.active { background: var(--green-primary); color: var(--white); }
+        .nav-tab:hover { background: var(--green-medium); color: var(--white); border-color: var(--green-medium); }
 
         .header {
             background-color: var(--green-primary);
@@ -85,7 +103,6 @@ require_once __DIR__ . '/../../db.php';
             cursor: pointer; border-radius: 4px; font-weight: bold;
         }
 
-        /* Botão Discreto de Limpar */
         #btn-limpar-filtros {
             background: none; border: none; color: var(--green-light);
             text-decoration: underline; cursor: pointer; font-size: 0.85em;
@@ -94,7 +111,7 @@ require_once __DIR__ . '/../../db.php';
         #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
 
         /* Kanban Board */
-        .kanban-board { display: flex; gap: 20px; padding: 20px; height: calc(100vh - 140px); }
+        .kanban-board { display: flex; gap: 20px; padding: 20px; height: calc(100vh - 190px); }
         .kanban-column {
             background-color: var(--white); flex: 1; border: 2px solid var(--green-medium);
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
@@ -108,7 +125,7 @@ require_once __DIR__ . '/../../db.php';
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
         }
         
-        /* CARD (Com Tag Menor) */
+        /* CARD */
         .card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
             padding: 10px; padding-bottom: 22px; 
@@ -126,39 +143,31 @@ require_once __DIR__ . '/../../db.php';
         .card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
         .card .price-b2c { color: #673AB7; font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
-        /* TAG DINÂMICA */
         .subcolecao-badge {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            font-size: 0.68em; 
-            font-weight: bold;
-            padding: 3px 8px; 
-            border-top-left-radius: 6px; 
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+            position: absolute; bottom: 0; right: 0; font-size: 0.68em; 
+            font-weight: bold; padding: 3px 8px; border-top-left-radius: 6px; 
+            letter-spacing: 0.5px; text-transform: uppercase;
         }
 
-        /* Estilos de Modais */
+        /* CONTAINER DA PIRÂMIDE */
+        #piramide-view {
+            display: none; padding: 20px; background: white; margin: 20px; 
+            border-radius: 8px; border: 2px solid var(--green-medium); 
+            height: calc(100vh - 230px); box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Estilos de Modais... (mantidos iguais) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
         .modal-content { background: #fff; margin: 5% auto; padding: 25px; border-radius: 8px; border: 3px solid var(--green-primary); position: relative;}
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: var(--green-primary); font-weight: bold; }
         .footer { text-align: center; font-size: 0.8em; color: #666; padding: 10px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ccc;}
 
-        /* ESTILO DA MATRIZ DE RESUMO */
         #table-resumo { width: 100%; border-collapse: collapse; margin-top: 5px; }
         #table-resumo th, #table-resumo td { border: 1px solid #dcdcdc; padding: 10px; font-size: 0.9em; }
-        #table-resumo thead th { 
-            background: #757575;
-            color: white; padding: 12px; 
-            position: sticky; top: 0; cursor: pointer; font-size: 0.85em; text-align: left;
-            border: 1px solid #616161;
-        }
+        #table-resumo thead th { background: #757575; color: white; padding: 12px; position: sticky; top: 0; cursor: pointer; font-size: 0.85em; text-align: left; border: 1px solid #616161; }
         #table-resumo thead th:hover { background: #9E9E9E; } 
         #table-resumo tbody tr:nth-child(even) { background-color: #f9f9f9; }
         #table-resumo tbody tr:hover { background-color: #e8f5e9; }
-
-        /* LINKS DA MATRIZ */
         .matrix-link { color: var(--green-primary); text-decoration: underline; cursor: pointer; font-weight: bold; display: block; }
         .matrix-link:hover { color: #1b5e20; background: rgba(76, 175, 80, 0.1); border-radius: 4px; }
         .matrix-link-white { color: white; text-decoration: underline; cursor: pointer; font-weight: bold; display: block; }
@@ -166,6 +175,11 @@ require_once __DIR__ . '/../../db.php';
     </style>
 </head>
 <body>
+
+    <div class="top-nav">
+        <button class="nav-tab active" id="tab-kanban">📋 Faixa de Preço</button>
+        <button class="nav-tab" id="tab-piramide">🔺 Pirâmide de Preços</button>
+    </div>
 
     <div class="header">
         <div class="filters">
@@ -208,7 +222,7 @@ require_once __DIR__ . '/../../db.php';
         <div class="global-indicator">Mix Total: <span id="total-mix">0</span></div>
     </div>
 
-    <div class="kanban-board">
+    <div class="kanban-board" id="view-kanban">
         <div class="kanban-column" id="col-entrada">
             <div class="kanban-header">
                 <h3>Entrada</h3>
@@ -233,6 +247,10 @@ require_once __DIR__ . '/../../db.php';
             </div>
             <div class="kanban-cards" id="cards-premium"></div>
         </div>
+    </div>
+
+    <div id="piramide-view">
+        <canvas id="graficoPiramide"></canvas>
     </div>
 
     <div id="configModal" class="modal">
@@ -265,31 +283,24 @@ require_once __DIR__ . '/../../db.php';
     <div id="summaryModal" class="modal">
         <div class="modal-content" style="width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
             <span class="close-modal" id="close-summary">&times;</span>
-            
             <h2 style="margin: 0;">Resumo do Mix</h2>
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-            
             <div style="background: #f1f8e9; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
                 <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary);">FILTRAR POR GRUPO:</label>
                 <select id="resumo-filter-grupo" style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
                     <option value="TODOS">TODOS OS GRUPOS</option>
                 </select>
             </div>
-
             <div style="text-align: right; margin-bottom: 5px;">
                 <button id="btn-toggle-colecao" style="font-size: 0.7em; padding: 6px 12px; background-color: #757575; color: white; border: none; border-radius: 4px; cursor: pointer;">
                     ➕ Expandir Coleções
                 </button>
             </div>
-            
             <div style="overflow-y: auto; overflow-x: auto; flex-grow: 1;">
                 <table id="table-resumo">
-                    <thead id="thead-resumo">
-                        </thead>
-                    <tbody id="body-resumo">
-                        </tbody>
-                    <tfoot id="tfoot-resumo" style="position: sticky; bottom: 0; background: #757575; color: white; font-weight: bold;">
-                        </tfoot>
+                    <thead id="thead-resumo"></thead>
+                    <tbody id="body-resumo"></tbody>
+                    <tfoot id="tfoot-resumo" style="position: sticky; bottom: 0; background: #757575; color: white; font-weight: bold;"></tfoot>
                 </table>
             </div>
         </div>

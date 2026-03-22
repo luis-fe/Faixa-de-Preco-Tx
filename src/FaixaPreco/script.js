@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let sortConfig = { key: 'padrao', dir: 'desc' };
     let modoColecao = false;
     let backupFiltros = null;
+    let chartInstance = null; // Variável para controlar o gráfico
     
     let currentSyncTime = '--:--';
     let pollingInterval = null;
@@ -29,8 +30,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnToggleColecao = document.getElementById('btn-toggle-colecao');
     const lblLastSync = document.getElementById('last-sync');
 
+    // Abas
+    const tabKanban = document.getElementById('tab-kanban');
+    const tabPiramide = document.getElementById('tab-piramide');
+    const viewKanban = document.getElementById('view-kanban');
+    const viewPiramide = document.getElementById('piramide-view');
+
     // ==========================================
-    // 1. BUSCAR DADOS (E INICIAR O TEMPO REAL)
+    // CONTROLE DAS ABAS
+    // ==========================================
+    tabKanban.addEventListener('click', () => {
+        tabKanban.classList.add('active');
+        tabPiramide.classList.remove('active');
+        viewKanban.style.display = 'flex';
+        viewPiramide.style.display = 'none';
+    });
+
+    tabPiramide.addEventListener('click', () => {
+        tabPiramide.classList.add('active');
+        tabKanban.classList.remove('active');
+        viewKanban.style.display = 'none';
+        viewPiramide.style.display = 'block';
+    });
+
+    // ==========================================
+    // 1. BUSCAR DADOS
     // ==========================================
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
@@ -71,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 2. SISTEMA DE TEMPO REAL (POLLING)
+    // 2. SISTEMA DE TEMPO REAL
     // ==========================================
     function iniciarPolling(plano) {
         verificarSync(plano, true);
@@ -317,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 5. LÓGICA MESTRA DO KANBAN E TAGS DE CORES
+    // 5. LÓGICA MESTRA DO KANBAN E TAGS
     // ==========================================
     function atualizarKanban() {
         const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -342,6 +366,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         filtrados.sort((a, b) => a.preco - b.preco);
 
+        // Renderiza o Gráfico Pirâmide de forma sincronizada com o filtro!
+        renderizarGraficoPiramide(filtrados);
+
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
         Object.values(cols).forEach(c => c.innerHTML = '');
         let cont = { e: 0, i: 0, p: 0 };
@@ -349,7 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(p => {
             const card = document.createElement('div'); card.className = 'card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
-            let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkt: ${p.mkp.toFixed(2)}</span>` : '';
+            // --- CORREÇÃO DO "Mkt" PARA "Mkp" AQUI! ---
+            let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
 
             let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
             let badgeHtml = '';
@@ -400,7 +428,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 6. MODAL DE GRUPO DINÂMICO E SALVAMENTO
+    // 6. FUNÇÃO DO GRÁFICO DA PIRÂMIDE
+    // ==========================================
+    function renderizarGraficoPiramide(filtrados) {
+        const ctx = document.getElementById('graficoPiramide').getContext('2d');
+
+        // Agrupar produtos por faixas de preço exato
+        const contagemPorPreco = {};
+        filtrados.forEach(p => {
+            const precoStr = p.preco.toFixed(2);
+            contagemPorPreco[precoStr] = (contagemPorPreco[precoStr] || 0) + 1;
+        });
+
+        // Ordena os preços do MAIOR (topo) para o MENOR (base), formato clássico de pirâmide/funil
+        const labelsOrdenadas = Object.keys(contagemPorPreco).sort((a, b) => parseFloat(b) - parseFloat(a));
+        const dados = labelsOrdenadas.map(l => contagemPorPreco[l]);
+        const labelsComSifrao = labelsOrdenadas.map(l => 'R$ ' + l.replace('.', ','));
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar', // Barra horizontal cria o formato de pirâmide deitada
+            data: {
+                labels: labelsComSifrao,
+                datasets: [{
+                    label: 'Quantidade de Produtos',
+                    data: dados,
+                    backgroundColor: '#25382D', // A cor verde elegante que escolhemos
+                    borderColor: '#4CAF50',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Inverte os eixos para o gráfico ficar deitado (Y=Preço, X=Qtd)
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw + ' produtos nesse preço';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'NÚMERO TOTAL DE PRODUTOS', font: { weight: 'bold' } }
+                    },
+                    y: {
+                        title: { display: true, text: 'PREÇO SUGERIDO', font: { weight: 'bold' } }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 7. MODAL DE GRUPO DINÂMICO E SALVAMENTO
     // ==========================================
     function popularGrupoModal() {
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
@@ -448,18 +538,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 7. CONTROLES GERAIS E BOTÃO LIMPAR FILTROS
+    // 8. CONTROLES GERAIS E BOTÃO LIMPAR FILTROS
     // ==========================================
     document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-        if (!selPlano.value) return; // Se não tem plano selecionado, não faz nada
-        
-        // Marca o "Selecionar Tudo" e todos os itens (visíveis ou invisíveis)
+        if (!selPlano.value) return; 
         document.querySelectorAll('.select-all').forEach(chk => chk.checked = true);
         document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
-        
-        // Se a pessoa limpou pela tela principal, reseta o filtro do Modal Matriz também
         document.getElementById('resumo-filter-grupo').value = 'TODOS';
-        
         atualizarKanban();
     });
 
