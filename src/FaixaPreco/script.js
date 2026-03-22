@@ -411,9 +411,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filtradosParaVisuais.sort((a, b) => a.preco - b.preco);
 
+        // --- LÓGICA DOS RÓTULOS (Esconde se for igual ao total da base) ---
         // Se a quantidade de itens no gráfico for menor que o total da base de dados, significa que tem um filtro ativo.
         const isFiltered = (linhaSelecionadaPBI !== null) || (filtradosParaVisuais.length < produtosBase.length);
         
+        // Renderiza o Gráfico passando a variável de controle isFiltered
         renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered);
 
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
@@ -542,30 +544,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // --- MUDANÇA PARA GRÁFICO DE ÁREA/LINHA ---
         chartInstance = new Chart(ctx, {
-            type: 'line', // Modificado de 'bar' para 'line'
+            type: 'bar',
             data: {
                 labels: labelsComSifrao,
                 datasets: [{
                     data: dados,
-                    fill: true, // Preenche o corpo da pirâmide
-                    backgroundColor: analisarB2C ? 'rgba(103, 58, 183, 0.35)' : 'rgba(37, 56, 45, 0.35)', // Fundo Translúcido
-                    borderColor: analisarB2C ? '#673AB7' : '#25382D', // Borda Forte
-                    borderWidth: 3,
-                    tension: 0.1, // Deixa a linha minimamente suave, sem perder o bico da pirâmide
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: analisarB2C ? '#673AB7' : '#25382D',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    backgroundColor: '#4CAF50', 
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.85, 
+                    categoryPercentage: 0.9
                 }]
             },
             options: {
-                indexAxis: 'y', // Continua na horizontal
+                indexAxis: 'y', 
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: { padding: { top: 20, bottom: 10, left: 10, right: 40 } }, // Ajuste para caber as bolinhas e labels
+                layout: { padding: { top: 10, bottom: 10, left: 10, right: 30 } },
                 plugins: {
                     title: {
                         display: true,
@@ -576,15 +572,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     legend: { display: false },
                     
-                    // --- REGRAS DOS RÓTULOS FLUTUANTES ---
+                    // --- REGRAS DOS RÓTULOS (DENTRO DA BARRA) ---
                     datalabels: {
-                        display: isFiltered, 
-                        color: analisarB2C ? '#673AB7' : '#25382D', // Cor do texto acompanha a linha
-                        backgroundColor: 'rgba(255,255,255,0.85)', // Fundo branco leve pra não misturar na pirâmide
+                        display: isFiltered, // <-- MÁGICA DOS RÓTULOS AQUI!
+                        color: '#fff', 
+                        backgroundColor: analisarB2C ? '#673AB7' : '#25382D', 
                         borderRadius: 4,
                         padding: 4,
-                        anchor: 'end', // Ancora no final da linha (à direita)
-                        align: 'right', // Posiciona à direita do ponto
+                        anchor: 'center', 
+                        align: 'center',  
                         font: { weight: 'bold', size: 12, family: 'Segoe UI' },
                         formatter: function(value) { return value; }
                     },
