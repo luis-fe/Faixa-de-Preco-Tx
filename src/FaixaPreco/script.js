@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let sortConfig = { key: 'padrao', dir: 'desc' };
     let modoColecao = false;
 
+    // Variável para guardar o estado dos filtros durante o salvamento
+    let backupFiltros = null;
+
     // --- ELEMENTOS ---
     const selPlano = document.getElementById('filter-plano');
     const listColecao = document.getElementById('list-colecao');
@@ -46,7 +49,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, eMax: parseFloat(p.faixa_entrada_max) || 0, iMax: parseFloat(p.faixa_inter_max) || 0
                     };
                 });
+                
                 gerarFiltrosCheckboxes();
+
+                // SE EXISTE BACKUP, RESTAURA OS FILTROS ANTES DE DESENHAR O KANBAN
+                if (backupFiltros) {
+                    restaurarFiltros(backupFiltros);
+                    backupFiltros = null; // Limpa o backup após o uso
+                }
+
                 popularGrupoModal();
                 atualizarKanban();
                 document.getElementById('last-sync').innerText = new Date().toLocaleTimeString('pt-BR');
@@ -120,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarMatrizHTML();
     };
 
-    // Função global chamada pelos links da tabela
     window.aplicarFiltroResumo = (grupo, linha, colecao) => {
         const filtroGrupoResumo = resumoFilterGrupo.value; 
 
@@ -223,6 +233,26 @@ document.addEventListener('DOMContentLoaded', () => {
         preencher(listColecao, unique('colecao')); preencher(listLinha, unique('linha')); preencher(listGrupo, unique('grupo'));
     }
 
+    function restaurarFiltros(backup) {
+        const aplicarBackup = (containerId, marcados) => {
+            const container = document.getElementById(containerId);
+            const checkboxes = container.querySelectorAll('.item-checkbox');
+            let allChecked = true;
+            
+            checkboxes.forEach(chk => {
+                chk.checked = marcados.includes(chk.value);
+                if (!chk.checked && chk.closest('label').style.display !== 'none') {
+                    allChecked = false;
+                }
+            });
+            container.querySelector('.select-all').checked = allChecked;
+        };
+
+        aplicarBackup('list-colecao', backup.col);
+        aplicarBackup('list-linha', backup.lin);
+        aplicarBackup('list-grupo', backup.gru);
+    }
+
     // ==========================================
     // 4. LÓGICA MESTRA DO KANBAN E BI
     // ==========================================
@@ -301,13 +331,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnSave.onclick = async () => {
         const plano = selPlano.value, grupo = modalSelGrupo.value, inputs = containerLinhasDinamicas.querySelectorAll('.in-entrada');
+        
+        // CRIA O BACKUP DOS FILTROS ATUAIS ANTES DE SALVAR
+        const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
+        backupFiltros = {
+            col: getChecked('list-colecao'),
+            lin: getChecked('list-linha'),
+            gru: getChecked('list-grupo')
+        };
+
         btnSave.innerText = "Salvando..."; btnSave.disabled = true;
         for (let inputE of inputs) {
             const linha = inputE.dataset.linha, vEntrada = inputE.value, vInter = containerLinhasDinamicas.querySelector(`.in-inter[data-linha="${linha}"]`).value;
             await fetch('salvar_faixas.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plano, linha, grupo, valorEntrada: vEntrada, valorInter: vInter, valorPremium: vInter }) });
         }
-        modalConfig.style.display = 'none'; selPlano.dispatchEvent(new Event('change'));
-        btnSave.innerText = "Salvar Todas as Faixas"; btnSave.disabled = false;
+        modalConfig.style.display = 'none'; 
+        
+        // Dispara a busca que vai reconstruir a tela (e usar o backup)
+        selPlano.dispatchEvent(new Event('change'));
+        
+        btnSave.innerText = "Salvar Todas as Faixas do Grupo"; btnSave.disabled = false;
     };
 
     // CONTROLES
