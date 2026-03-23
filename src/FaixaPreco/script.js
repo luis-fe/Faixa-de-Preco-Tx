@@ -61,7 +61,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     toggleTipoPreco.addEventListener('change', () => { atualizarKanban(); });
-    filtroTabelaGrupo.addEventListener('change', () => { atualizarKanban(); });
+
+    // --- NOVA LÓGICA DE SINCRONIZAÇÃO DO SELECT DA TABELA ---
+    filtroTabelaGrupo.addEventListener('change', (e) => { 
+        const val = e.target.value;
+        const chkAll = listGrupo.querySelector('.select-all');
+        const chkItems = listGrupo.querySelectorAll('.item-checkbox');
+
+        if (chkAll && chkItems) {
+            if (val === 'TODOS') {
+                chkAll.checked = true;
+                chkItems.forEach(chk => chk.checked = true);
+            } else {
+                chkAll.checked = false;
+                chkItems.forEach(chk => {
+                    chk.checked = (chk.value === val);
+                });
+            }
+        }
+        
+        linhaSelecionadaPBI = null; // Reseta sub-linha selecionada para evitar conflito
+        atualizarKanban(); 
+    });
 
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
@@ -356,6 +377,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const fCol = getChecked(listColecao), fLin = getChecked(listLinha), fGru = getChecked(listGrupo);
         const analisarB2C = toggleTipoPreco.checked;
 
+        // --- SINCRONIZA AS CHECKBOXES PARA O SELECT DA TABELA ---
+        if (fGru.length === 1) {
+            filtroTabelaGrupo.value = fGru[0];
+        } else {
+            filtroTabelaGrupo.value = 'TODOS';
+        }
+
         const validCol = new Set(produtosBase.filter(p => fLin.includes(p.linha) && fGru.includes(p.grupo)).map(p => p.colecao));
         const validLin = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fGru.includes(p.grupo)).map(p => p.linha));
         const validGru = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha)).map(p => p.grupo));
@@ -447,20 +475,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function atualizarTabelaLateral(filtradosGerais) {
-        const filtroSelect = document.getElementById('filtro-tabela-grupo').value;
+        // Agora, como o filtro principal já faz o corte correto de Grupo, 
+        // a tabela apenas exibe o que os filtros principais mandaram. Fica muito mais limpo!
         const tbody = document.querySelector('#side-summary-table tbody');
         
         const mapa = {};
-        let totalGeralTabela = 0; // Armazena o total do mix visível na tabela
+        let totalGeralTabela = 0;
 
-        // Conta as linhas que passam no filtro atual
         filtradosGerais.forEach(p => {
-            if (filtroSelect !== 'TODOS' && p.grupo !== filtroSelect) return;
-
             const key = p.grupo + '|' + p.linha;
             if (!mapa[key]) mapa[key] = { grupo: p.grupo, linha: p.linha, total: 0 };
             mapa[key].total++;
-            totalGeralTabela++; // Incrementa o total geral
+            totalGeralTabela++;
         });
 
         const arrayResumo = Object.values(mapa);
@@ -480,7 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const escG = item.grupo.replace(/'/g, "\\'");
             const escL = item.linha.replace(/'/g, "\\'");
 
-            // Cálculo do percentual do mix
             let percentual = totalGeralTabela > 0 ? ((item.total / totalGeralTabela) * 100).toFixed(1) : 0;
 
             return `
@@ -533,7 +558,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     backgroundColor: '#4CAF50', 
                     borderWidth: 0,
                     borderRadius: 4,
-                    // AJUSTES APLICADOS AQUI PARA O ESPAÇAMENTO
                     barPercentage: 0.6,  
                     categoryPercentage: 0.8
                 }]
