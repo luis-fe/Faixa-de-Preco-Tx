@@ -82,8 +82,7 @@ require_once __DIR__ . '/../../db.php';
         .nav-tab:hover { background: var(--green-light); opacity: 1; }
         .nav-tab.active:hover { background: var(--green-primary); }
 
-        /* Ajuste: Retirado o width: 100% para não quebrar a linha no PC */
-        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; width: 100%; justify-content: flex-start; }
 
         #filter-plano {
             padding: 6px 10px; border-radius: 4px; border: 1px solid var(--white);
@@ -91,7 +90,7 @@ require_once __DIR__ . '/../../db.php';
             font-weight: bold; cursor: pointer; font-size: 0.85em;
         }
 
-        .multiselect-container { position: relative; display: inline-block; min-width: 160px; }
+        .multiselect-container { position: relative; display: inline-block; min-width: 160px; flex-grow: 1; max-width: 300px; }
         .select-box {
             background-color: var(--white); color: var(--green-primary);
             padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;
@@ -117,6 +116,7 @@ require_once __DIR__ . '/../../db.php';
             background-color: var(--white); color: var(--green-primary);
             padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em;
             border: 2px solid var(--green-medium);
+            margin-left: auto;
             white-space: nowrap;
         }
 
@@ -135,53 +135,56 @@ require_once __DIR__ . '/../../db.php';
         }
         #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
 
-        /* Kanban Board */
+        /* ==========================================
+           VISÃO KANBAN ORIGINAL (Restaurando Visual sobre o Bootstrap)
+           ========================================== */
         .kanban-board { min-height: calc(100vh - 170px); height: auto; }
+        
         .kanban-column {
-            background-color: var(--white); border: 1px solid #ddd;
-            border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            height: 100%; 
-            min-height: 400px; 
+            background-color: var(--white) !important; flex: 1; border: 2px solid var(--green-medium) !important;
+            border-radius: 8px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important;
+            height: 100%; min-height: 400px; box-shadow: none !important;
         }
-        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-primary); }
-        .kanban-header h3 { margin: 0 0 3px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }
-        .range-info { font-size: 0.75em; opacity: 0.9; display: block; margin-bottom: 3px; color: #fff;}
-        .mix-info { display: block; font-size: 1em; font-weight: bold; color: var(--white); text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .kanban-header { background-color: var(--green-medium) !important; color: var(--white) !important; padding: 8px !important; text-align: center !important; border-bottom: none !important;}
+        .kanban-header h3 { margin: 0 0 5px 0 !important; font-size: 1.1em !important; text-transform: none !important; letter-spacing: normal !important; font-weight: bold !important;}
+        .range-info { font-size: 0.85em !important; opacity: 0.9 !important; display: inline !important; color: inherit !important; margin-bottom: 0 !important;}
+        .mix-info { display: block !important; margin-top: 5px !important; font-size: 1.1em !important; font-weight: bold !important; color: #E8F5E9 !important; text-shadow: none !important;}
         
-        /* Retornamos para as 2 colunas fixas originais que você gostou */
         .kanban-cards {
-            padding: 10px; overflow-y: auto; flex-grow: 1; background-color: #f5f5f5;
-            display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 10px; align-content: start;
+            padding: 15px !important; overflow-y: auto !important; flex-grow: 1 !important; background-color: #fafafa !important;
+            display: grid !important; grid-template-columns: repeat(2, 1fr) !important; grid-gap: 15px !important; align-content: start !important;
         }
         
-        /* CARD (Com as regras originais fortes para sobrepor o Bootstrap) */
+        /* O CARD ORIGINAL PERFEITO */
         .card {
-            background-color: var(--white) !important; border: 1px solid #eee !important; border-top: 3px solid var(--green-primary) !important;
-            padding: 8px !important; padding-bottom: 20px !important; 
-            border-radius: 4px !important; display: flex !important; flex-direction: column !important; gap: 4px !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; min-height: 80px !important; justify-content: space-between !important;
-            overflow: hidden !important; position: relative !important; transition: 0.2s !important;
-            flex-direction: column; /* Sobrescreve flex-row acidental do BS */
+            background-color: var(--white) !important; border: 1px solid var(--green-medium) !important; border-top: 4px solid var(--green-primary) !important;
+            padding: 10px !important; padding-bottom: 22px !important; 
+            border-radius: 6px !important; display: flex !important; flex-direction: column !important; gap: 5px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; min-height: 90px !important; justify-content: space-between !important;
+            overflow: hidden !important; word-wrap: break-word !important;
+            position: relative !important; transform: none !important; transition: none !important; margin: 0 !important;
         }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
+        .card:hover { transform: none !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; }
         
-        .card .info-container { display: flex; flex-direction: column; gap: 1px; }
-        .card .ref-code { font-size: 0.85em; color: #222; font-weight: bold; display: block; }
-        .card .description { font-size: 0.75em; color: #666; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 1.8em; margin-bottom: 0;}
-        .card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 4px; margin-top: 2px; }
-        .card .b2b-row { display: flex; justify-content: space-between; align-items: baseline; }
-        .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.1em; white-space: nowrap; }
-        .card .markup { color: #888; font-size: 0.8em; font-weight: bold; }
-        .card .price-b2c { color: var(--purple-b2c); font-size: 0.7em; font-weight: bold; display: block; margin-top: -1px; }
+        .card .info-container { display: flex !important; flex-direction: column !important; gap: 2px !important; }
+        .card .ref-code { font-size: 0.9em !important; color: #222 !important; font-weight: bold !important; display: block !important; }
+        .card .description { font-size: 0.78em !important; color: #757575 !important; line-height: 1.2 !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; height: auto !important; margin-bottom: 0 !important; }
+        .card .price-container { display: flex !important; flex-direction: column !important; border-top: 1px solid #f0f0f0 !important; padding-top: 6px !important; margin-top: 4px !important; }
+        .card .b2b-row { display: flex !important; justify-content: space-between !important; align-items: baseline !important; }
+        .card .price { color: var(--green-primary) !important; font-weight: 800 !important; font-size: 1.15em !important; white-space: nowrap !important; }
+        .card .markup { color: #888 !important; font-size: 0.85em !important; font-weight: bold !important; }
+        .card .price-b2c { color: var(--purple-b2c) !important; font-size: 0.75em !important; font-weight: bold !important; display: block !important; margin-top: -2px !important; }
 
         .subcolecao-badge {
-            position: absolute; bottom: 0; right: 0; font-size: 0.65em; 
-            font-weight: bold; padding: 2px 6px; border-top-left-radius: 4px; 
-            letter-spacing: 0.5px; text-transform: uppercase; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            position: absolute !important; bottom: 0 !important; right: 0 !important; font-size: 0.68em !important; 
+            font-weight: bold !important; padding: 3px 8px !important; border-top-left-radius: 6px !important; 
+            letter-spacing: 0.5px !important; text-transform: uppercase !important; max-width: none !important; white-space: nowrap !important; overflow: visible !important; text-overflow: clip !important;
         }
 
-        /* VISÃO PIRÂMIDE */
+
+        /* ==========================================
+           VISÃO PIRÂMIDE
+           ========================================== */
         #piramide-view {
             min-height: calc(100vh - 165px); 
             height: auto;
@@ -192,7 +195,7 @@ require_once __DIR__ . '/../../db.php';
             margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; gap: 15px;
         }
 
-        .control-label { font-size: 0.85em; font-weight: bold; color: #555; margin-bottom: 0;}
+        .control-label { font-size: 0.85em; font-weight: bold; color: #555; }
 
         .price-toggle-container {
             display: flex; align-items: center; gap: 10px;
@@ -203,7 +206,7 @@ require_once __DIR__ . '/../../db.php';
         .toggle-text.b2b { color: var(--green-primary); }
         .toggle-text.b2c { color: #999; }
 
-        .switch { position: relative; display: inline-block; width: 40px; height: 20px; margin-bottom: 0;}
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--green-primary); transition: .4s; border-radius: 20px; }
         .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
@@ -220,7 +223,7 @@ require_once __DIR__ . '/../../db.php';
             display: flex; flex-direction: column; height: 100%; min-height: 400px;
         }
 
-        #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 0;}
+        #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444;}
         #side-summary-table td { padding: 6px 8px; border-bottom: 1px solid #eee; }
         
@@ -237,7 +240,7 @@ require_once __DIR__ . '/../../db.php';
         
         .footer { text-align: center; font-size: 0.75em; color: #888; padding: 8px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ddd; z-index: 80;}
 
-        #table-resumo { width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 0;}
+        #table-resumo { width: 100%; border-collapse: collapse; margin-top: 5px; }
         #table-resumo th, #table-resumo td { border: 1px solid #eee; padding: 8px; font-size: 0.85em; text-align: left; }
         #table-resumo thead th { background: #666; color: white; position: sticky; top: 0; cursor: pointer; text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.5px; border-color: #555;}
         #table-resumo thead th:hover { background: #777; } 
@@ -251,7 +254,6 @@ require_once __DIR__ . '/../../db.php';
         /* === MEDIA QUERIES PARA MOBILE === */
         @media (max-width: 991px) {
             .header { flex-direction: column; align-items: stretch; }
-            /* No celular, os filtros empilham ocupando a tela toda */
             .filters { flex-direction: column; align-items: stretch; width: 100%; } 
             .multiselect-container { max-width: 100%; width: 100%; }
             .global-indicator { margin-left: 0; text-align: center; margin-top: 10px; }
@@ -265,7 +267,6 @@ require_once __DIR__ . '/../../db.php';
                 padding-top: 20px;
                 margin-top: 20px;
             }
-            .kanban-cards { grid-template-columns: 1fr; } /* 1 Card por linha no mobile */
         }
         @media (min-width: 992px) {
             .piramide-right-col { border-left: 1px solid #eee; padding-left: 15px; }
