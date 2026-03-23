@@ -10,13 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let backupFiltros = null;
     let chartInstance = null; 
     
-    // --- ESTADO DO POWER BI (Filtro Cruzado da Tabela) ---
     let linhaSelecionadaPBI = null; 
 
     let currentSyncTime = '--:--';
     let pollingInterval = null;
 
-    // --- ELEMENTOS ---
     const selPlano = document.getElementById('filter-plano');
     const listColecao = document.getElementById('list-colecao');
     const listLinha = document.getElementById('list-linha');
@@ -38,15 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnToggleColecao = document.getElementById('btn-toggle-colecao');
     const lblLastSync = document.getElementById('last-sync');
 
-    // Abas
     const tabKanban = document.getElementById('tab-kanban');
     const tabPiramide = document.getElementById('tab-piramide');
     const viewKanban = document.getElementById('view-kanban');
     const viewPiramide = document.getElementById('piramide-view');
 
-    // ==========================================
-    // CONTROLE DAS ABAS E SELETORES
-    // ==========================================
     tabKanban.addEventListener('click', () => {
         tabKanban.classList.add('active');
         tabPiramide.classList.remove('active');
@@ -58,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tabPiramide.classList.add('active');
         tabKanban.classList.remove('active');
         viewKanban.style.display = 'none';
-        viewPiramide.style.display = 'flex'; 
+        viewPiramide.style.display = 'block'; 
         
         if (chartInstance) {
             chartInstance.resize();
@@ -69,9 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleTipoPreco.addEventListener('change', () => { atualizarKanban(); });
     filtroTabelaGrupo.addEventListener('change', () => { atualizarKanban(); });
 
-    // ==========================================
-    // 1. BUSCAR DADOS
-    // ==========================================
     selPlano.addEventListener('change', () => {
         const plano = selPlano.value;
         if (!plano) { limparFiltros(); return; }
@@ -112,9 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    // ==========================================
-    // 2. SISTEMA DE TEMPO REAL
-    // ==========================================
     function iniciarPolling(plano) {
         verificarSync(plano, true);
         pollingInterval = setInterval(() => { verificarSync(plano, false); }, 10000); 
@@ -152,9 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(err => console.error("Erro ao checar sync", err));
     }
 
-    // ==========================================
-    // 3. MATRIZ DE RESUMO KANBAN
-    // ==========================================
     btnAbrirResumo.onclick = () => {
         if (produtosBase.length === 0) { alert("Selecione um plano primeiro!"); return; }
         
@@ -308,9 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tfootResumo.innerHTML = tfootHtml;
     }
 
-    // ==========================================
-    // 4. CHECKBOXES DO KANBAN 
-    // ==========================================
     function gerarFiltrosCheckboxes() {
         const unique = (attr) => [...new Set(produtosBase.map(p => p[attr]))].sort();
         const preencher = (container, data) => {
@@ -358,10 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
         aplicarBackup('list-grupo', backup.gru, backup.gruAll);
     }
 
-    // ==========================================
-    // 5. LÓGICA MESTRA DO KANBAN E TAGS
-    // ==========================================
-    
     window.toggleLinhaPBI = (grupo, linha) => {
         if (linhaSelecionadaPBI && linhaSelecionadaPBI.grupo === grupo && linhaSelecionadaPBI.linha === linha) {
             linhaSelecionadaPBI = null; 
@@ -411,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filtradosParaVisuais.sort((a, b) => a.preco - b.preco);
 
-        // Se a quantidade de itens no gráfico for menor que o total da base de dados, significa que tem um filtro ativo.
+        // Se a quantidade for menor que a base, o gráfico entende que está filtrado
         const isFiltered = (linhaSelecionadaPBI !== null) || (filtradosParaVisuais.length < produtosBase.length);
         
         renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered);
@@ -421,7 +399,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let cont = { e: 0, i: 0, p: 0 };
 
         filtradosParaVisuais.forEach(p => {
-            const card = document.createElement('div'); card.className = 'card-custom';
+            // *** AQUI ESTÁ A CHAVE: Usando a nossa classe blindada meu-card ***
+            const card = document.createElement('div'); card.className = 'meu-card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
 
@@ -469,9 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==========================================
-    // 6. FUNÇÕES DA TELA PIRÂMIDE (Gráfico e Tabela Lateral)
-    // ==========================================
     function atualizarTabelaLateral(filtradosGerais) {
         const filtroSelect = document.getElementById('filtro-tabela-grupo').value;
         const tbody = document.querySelector('#side-summary-table tbody');
@@ -559,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 indexAxis: 'y', 
                 responsive: true,
                 maintainAspectRatio: false,
-                // Aumentado o espaço right para os números externos não cortarem
+                // Espaço extra na direita (40) para o rótulo não cortar
                 layout: { padding: { top: 10, bottom: 10, left: 10, right: 40 } },
                 plugins: {
                     title: {
@@ -571,24 +547,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     legend: { display: false },
                     
-                    // --- MÁGICA DOS RÓTULOS (Dinâmicos) ---
+                    // --- MÁGICA DOS RÓTULOS (Dinâmicos e Externos) ---
                     datalabels: {
-                        display: true, // Agora sempre exibe
-                        // Se filtrado = Branco, se Geral = Cinza (igual do eixo Y)
+                        display: true, 
                         color: isFiltered ? '#fff' : '#444', 
-                        // Se filtrado = Fundo colorido, se Geral = Sem fundo
                         backgroundColor: isFiltered ? (analisarB2C ? '#673AB7' : '#25382D') : null, 
                         borderRadius: 4,
                         padding: isFiltered ? 4 : 0,
-                        // Se filtrado = No meio da barra, se Geral = Fora da barra (no final)
                         anchor: isFiltered ? 'center' : 'end', 
                         align: isFiltered ? 'center' : 'right',  
-                        font: { 
-                            weight: 'bold', 
-                            // Se filtrado = Maior (12), se Geral = Menor (11, igual eixo Y)
-                            size: isFiltered ? 12 : 11, 
-                            family: 'Segoe UI' 
-                        },
+                        font: { weight: 'bold', size: isFiltered ? 12 : 11, family: 'Segoe UI' },
                         formatter: function(value) { return value; }
                     },
                     tooltip: {
@@ -613,9 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // 7. MODAL DE GRUPO DINÂMICO E SALVAMENTO
-    // ==========================================
     function popularGrupoModal() {
         const uniqueGrupos = [...new Set(produtosBase.map(p => p.grupo))].sort();
         
@@ -671,9 +636,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSave.innerText = "Salvar Faixas do Grupo"; btnSave.disabled = false; btnSave.style.opacity = 1;
     };
 
-    // ==========================================
-    // 8. CONTROLES GERAIS E BOTÃO LIMPAR FILTROS
-    // ==========================================
     document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
         if (!selPlano.value) return; 
         document.querySelectorAll('.select-all').forEach(chk => chk.checked = true);
