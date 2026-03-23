@@ -389,7 +389,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filtradosParaVisuais.sort((a, b) => a.preco - b.preco);
 
-        // Se a quantidade for menor que a base, o gráfico entende que está filtrado
         const isFiltered = (linhaSelecionadaPBI !== null) || (filtradosParaVisuais.length < produtosBase.length);
         
         renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered);
@@ -399,7 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let cont = { e: 0, i: 0, p: 0 };
 
         filtradosParaVisuais.forEach(p => {
-            // *** AQUI ESTÁ A CHAVE: Usando a nossa classe blindada meu-card ***
             const card = document.createElement('div'); card.className = 'meu-card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
@@ -453,12 +451,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.querySelector('#side-summary-table tbody');
         
         const mapa = {};
+        let totalGeralTabela = 0; // Armazena o total do mix visível na tabela
+
+        // Conta as linhas que passam no filtro atual
         filtradosGerais.forEach(p => {
             if (filtroSelect !== 'TODOS' && p.grupo !== filtroSelect) return;
 
             const key = p.grupo + '|' + p.linha;
             if (!mapa[key]) mapa[key] = { grupo: p.grupo, linha: p.linha, total: 0 };
             mapa[key].total++;
+            totalGeralTabela++; // Incrementa o total geral
         });
 
         const arrayResumo = Object.values(mapa);
@@ -478,11 +480,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const escG = item.grupo.replace(/'/g, "\\'");
             const escL = item.linha.replace(/'/g, "\\'");
 
+            // Cálculo do percentual do mix
+            let percentual = totalGeralTabela > 0 ? ((item.total / totalGeralTabela) * 100).toFixed(1) : 0;
+
             return `
             <tr class="${classeCSS}" onclick="toggleLinhaPBI('${escG}', '${escL}')">
                 <td>${item.grupo}</td>
                 <td><strong>${item.linha}</strong></td>
                 <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
+                <td style="text-align: center; font-size: 0.9em; color: #555;">${percentual}%</td>
             </tr>`;
         }).join('');
     }
@@ -490,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered) {
         const ctx = document.getElementById('graficoPiramide').getContext('2d');
 
-        const tituloGrafico = analisarB2C ? 'Preço B2c x Nº Produtos' : 'Preço B2b x Nº Produtos';
+        const tituloGrafico = analisarB2C ? 'Preço B2C x Nº Produtos' : 'Preço B2B x Nº Produtos';
         const chavePrecoAtiva = analisarB2C ? 'precoB2C' : 'preco';
 
         const contagemPorPreco = {};
@@ -527,15 +533,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     backgroundColor: '#4CAF50', 
                     borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage: 0.85, 
-                    categoryPercentage: 0.9
+                    // AJUSTES APLICADOS AQUI PARA O ESPAÇAMENTO
+                    barPercentage: 0.6,  
+                    categoryPercentage: 0.8
                 }]
             },
             options: {
                 indexAxis: 'y', 
                 responsive: true,
                 maintainAspectRatio: false,
-                // Espaço extra na direita (40) para o rótulo não cortar
                 layout: { padding: { top: 10, bottom: 10, left: 10, right: 40 } },
                 plugins: {
                     title: {
@@ -547,7 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     legend: { display: false },
                     
-                    // --- MÁGICA DOS RÓTULOS (Dinâmicos e Externos) ---
                     datalabels: {
                         display: true, 
                         color: isFiltered ? '#fff' : '#444', 
