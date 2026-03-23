@@ -350,6 +350,7 @@ require_once __DIR__ . '/../../db.php';
                                 <th>Grupo</th>
                                 <th>Linha</th>
                                 <th style="text-align: center;">Total</th>
+                                <th style="text-align: center;">Mix %</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
