@@ -506,18 +506,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const escG = item.grupo.replace(/'/g, "\\'");
             const escL = item.linha.replace(/'/g, "\\'");
 
-            let percentual = totalGeralTabela > 0 ? ((item.total / totalGeralTabela) * 100).toFixed(1) : 0;
+            // AQUI: Alterado para 2 casas decimais (toFixed(2)) e garante "0.00" caso não haja itens
+            let percentual = totalGeralTabela > 0 ? ((item.total / totalGeralTabela) * 100).toFixed(2) : "0.00";
 
+            // AQUI: Adicionado font-weight: bold e uma cor um pouco mais escura (#333) para destacar
             return `
             <tr class="${classeCSS}" onclick="toggleLinhaPBI('${escG}', '${escL}')">
                 <td>${item.grupo}</td>
                 <td><strong>${item.linha}</strong></td>
                 <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
-                <td style="text-align: center; font-size: 0.9em; color: #555;">${percentual}%</td>
+                <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percentual}%</td>
             </tr>`;
         }).join('');
     }
-
+    
     function renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered) {
         const ctx = document.getElementById('graficoPiramide').getContext('2d');
 
