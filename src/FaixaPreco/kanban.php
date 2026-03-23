@@ -261,12 +261,23 @@ require_once __DIR__ . '/../../db.php';
         .matrix-link:hover { color: var(--green-medium); }
         .matrix-link-white { color: white; text-decoration: underline; cursor: pointer; font-weight: bold; display: block; }
         .matrix-link-white:hover { color: var(--green-light); }
+
+
+        .logo-header {
+            height: 35px; /* Ajuste esse valor para deixar a logo maior ou menor */
+            object-fit: contain; /* Garante que a imagem não fique esticada/distorcida */
+            margin-right: 10px; /* Dá um espacinho entre a logo e o botão de Plano */
+            border-radius: 4px; /* Opcional: Deixa as bordas da logo levemente arredondadas */
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="filters">
+            
+            <img src="../static/logo.jpeg" alt="Logo" class="logo-header">
+
             <select id="filter-plano">
                 <option value="">PLANO</option>
                 <?php
