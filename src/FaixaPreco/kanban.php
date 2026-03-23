@@ -385,23 +385,24 @@ require_once __DIR__ . '/../../db.php';
             </div>
 
             <div class="col-12 col-lg-5 piramide-right-col">
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                    <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary); margin-bottom: 0;">GRUPO:</label>
-                    <select id="filtro-tabela-grupo" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold">
-                        <option value="TODOS">TODOS</option>
-                    </select>
+                <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary); margin-bottom: 0;">GÊNERO:</label>
+                        <select id="filtro-tabela-genero" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold">
+                            <option value="TODOS" selected>TODOS</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Infantil">Infantil</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <button id="btn-explode-visao" class="btn btn-sm btn-outline-secondary fw-bold" style="white-space: nowrap;">🔽 Explodir Grupos</button>
                 </div>
                 <div style="overflow-y: auto; flex-grow: 1;">
                     <table id="side-summary-table">
                         <thead>
-                            <tr>
-                                <th>Grupo</th>
-                                <th>Linha</th>
-                                <th style="text-align: center;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            </tbody>
+                            </thead>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
