@@ -411,11 +411,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filtradosParaVisuais.sort((a, b) => a.preco - b.preco);
 
-        // --- LÓGICA DOS RÓTULOS (Esconde se for igual ao total da base) ---
         // Se a quantidade de itens no gráfico for menor que o total da base de dados, significa que tem um filtro ativo.
         const isFiltered = (linhaSelecionadaPBI !== null) || (filtradosParaVisuais.length < produtosBase.length);
         
-        // Renderiza o Gráfico passando a variável de controle isFiltered
         renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered);
 
         const cols = { entrada: document.getElementById('cards-entrada'), inter: document.getElementById('cards-inter'), premium: document.getElementById('cards-premium') };
@@ -423,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let cont = { e: 0, i: 0, p: 0 };
 
         filtradosParaVisuais.forEach(p => {
-            const card = document.createElement('div'); card.className = 'card';
+            const card = document.createElement('div'); card.className = 'card-custom';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
 
@@ -561,7 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 indexAxis: 'y', 
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: { padding: { top: 10, bottom: 10, left: 10, right: 30 } },
+                // Aumentado o espaço right para os números externos não cortarem
+                layout: { padding: { top: 10, bottom: 10, left: 10, right: 40 } },
                 plugins: {
                     title: {
                         display: true,
@@ -572,16 +571,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     legend: { display: false },
                     
-                    // --- REGRAS DOS RÓTULOS (DENTRO DA BARRA) ---
+                    // --- MÁGICA DOS RÓTULOS (Dinâmicos) ---
                     datalabels: {
-                        display: isFiltered, // <-- MÁGICA DOS RÓTULOS AQUI!
-                        color: '#fff', 
-                        backgroundColor: analisarB2C ? '#673AB7' : '#25382D', 
+                        display: true, // Agora sempre exibe
+                        // Se filtrado = Branco, se Geral = Cinza (igual do eixo Y)
+                        color: isFiltered ? '#fff' : '#444', 
+                        // Se filtrado = Fundo colorido, se Geral = Sem fundo
+                        backgroundColor: isFiltered ? (analisarB2C ? '#673AB7' : '#25382D') : null, 
                         borderRadius: 4,
-                        padding: 4,
-                        anchor: 'center', 
-                        align: 'center',  
-                        font: { weight: 'bold', size: 12, family: 'Segoe UI' },
+                        padding: isFiltered ? 4 : 0,
+                        // Se filtrado = No meio da barra, se Geral = Fora da barra (no final)
+                        anchor: isFiltered ? 'center' : 'end', 
+                        align: isFiltered ? 'center' : 'right',  
+                        font: { 
+                            weight: 'bold', 
+                            // Se filtrado = Maior (12), se Geral = Menor (11, igual eixo Y)
+                            size: isFiltered ? 12 : 11, 
+                            family: 'Segoe UI' 
+                        },
                         formatter: function(value) { return value; }
                     },
                     tooltip: {
