@@ -82,7 +82,6 @@ require_once __DIR__ . '/../../db.php';
         .nav-tab:hover { background: var(--green-light); opacity: 1; }
         .nav-tab.active:hover { background: var(--green-primary); }
 
-        /* Ajuste: Retirado o width: 100% para não quebrar a linha no PC */
         .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
         #filter-plano {
@@ -149,35 +148,35 @@ require_once __DIR__ . '/../../db.php';
         .range-info { font-size: 0.75em; opacity: 0.9; display: block; margin-bottom: 3px; color: #fff;}
         .mix-info { display: block; font-size: 1em; font-weight: bold; color: var(--white); text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
         
-        /* Retornamos para as 2 colunas fixas originais que você gostou */
         .kanban-cards {
             padding: 10px; overflow-y: auto; flex-grow: 1; background-color: #f5f5f5;
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 10px; align-content: start;
         }
         
-        /* CARD (Com as regras originais fortes para sobrepor o Bootstrap) */
-        .card {
-            background-color: var(--white) !important; border: 1px solid #eee !important; border-top: 3px solid var(--green-primary) !important;
-            padding: 8px !important; padding-bottom: 20px !important; 
-            border-radius: 4px !important; display: flex !important; flex-direction: column !important; gap: 4px !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; min-height: 80px !important; justify-content: space-between !important;
-            overflow: hidden !important; position: relative !important; transition: 0.2s !important;
-            flex-direction: column; /* Sobrescreve flex-row acidental do BS */
+        /* ==========================================
+           O CARD BLINDADO (Novo nome para evitar Bootstrap)
+           ========================================== */
+        .meu-card {
+            background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
+            padding: 10px; padding-bottom: 22px; 
+            border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-height: 90px; justify-content: space-between;
+            overflow: hidden; word-wrap: break-word; position: relative; transition: transform 0.2s;
         }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
+        .meu-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
         
-        .card .info-container { display: flex; flex-direction: column; gap: 1px; }
-        .card .ref-code { font-size: 0.85em; color: #222; font-weight: bold; display: block; }
-        .card .description { font-size: 0.75em; color: #666; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 1.8em; margin-bottom: 0;}
-        .card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 4px; margin-top: 2px; }
-        .card .b2b-row { display: flex; justify-content: space-between; align-items: baseline; }
-        .card .price { color: var(--green-primary); font-weight: 800; font-size: 1.1em; white-space: nowrap; }
-        .card .markup { color: #888; font-size: 0.8em; font-weight: bold; }
-        .card .price-b2c { color: var(--purple-b2c); font-size: 0.7em; font-weight: bold; display: block; margin-top: -1px; }
+        .meu-card .info-container { display: flex; flex-direction: column; gap: 2px; }
+        .meu-card .ref-code { font-size: 0.9em; color: #222; font-weight: bold; display: block; }
+        .meu-card .description { font-size: 0.78em; color: #757575; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0;}
+        .meu-card .price-container { display: flex; flex-direction: column; border-top: 1px solid #f0f0f0; padding-top: 6px; margin-top: 4px; }
+        .meu-card .b2b-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .meu-card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
+        .meu-card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
+        .meu-card .price-b2c { color: var(--purple-b2c); font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
 
-        .subcolecao-badge {
-            position: absolute; bottom: 0; right: 0; font-size: 0.65em; 
-            font-weight: bold; padding: 2px 6px; border-top-left-radius: 4px; 
+        .meu-card .subcolecao-badge {
+            position: absolute; bottom: 0; right: 0; font-size: 0.68em; 
+            font-weight: bold; padding: 3px 8px; border-top-left-radius: 6px; 
             letter-spacing: 0.5px; text-transform: uppercase; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
@@ -251,7 +250,6 @@ require_once __DIR__ . '/../../db.php';
         /* === MEDIA QUERIES PARA MOBILE === */
         @media (max-width: 991px) {
             .header { flex-direction: column; align-items: stretch; }
-            /* No celular, os filtros empilham ocupando a tela toda */
             .filters { flex-direction: column; align-items: stretch; width: 100%; } 
             .multiselect-container { max-width: 100%; width: 100%; }
             .global-indicator { margin-left: 0; text-align: center; margin-top: 10px; }
