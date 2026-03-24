@@ -35,13 +35,13 @@ require_once __DIR__ . '/../../db.php';
             color: var(--green-primary);
             margin: 0; padding: 0;
             overflow-x: hidden;
-            overflow-y: hidden; 
+            /* overflow-y: hidden REMOVIDO para evitar que o navegador corte o final do seu Kanban */
         }
 
         .header {
             background-color: var(--green-primary);
             color: var(--white);
-            padding: 8px 15px; /* Ligeiramente reduzido para caber tudo */
+            padding: 8px 15px; 
             display: flex; gap: 10px; 
             align-items: center; justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -64,14 +64,11 @@ require_once __DIR__ . '/../../db.php';
         .nav-tab:hover { background: var(--green-light); opacity: 1; }
         .nav-tab.active:hover { background: var(--green-primary); }
 
-        /* MAGICA DO LAYOUT: Força 1 linha no PC (nowrap) e encolhe os elementos flex-shrink */
+        /* Ajustado: Removido overflow-x para os Dropdowns não serem cortados! */
         .filters { 
             display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; 
-            width: 100%; justify-content: flex-start; overflow-x: auto;
+            width: 100%; justify-content: flex-start;
         }
-        
-        .filters::-webkit-scrollbar { height: 4px; }
-        .filters::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
 
         #filter-plano {
             padding: 4px 8px; border-radius: 4px; border: 1px solid var(--white);
@@ -92,7 +89,7 @@ require_once __DIR__ . '/../../db.php';
         
         .checkboxes-list {
             display: none; position: absolute; background-color: var(--white);
-            border: 1px solid #ccc; width: 100%; min-width: 180px; max-height: 250px;
+            border: 1px solid #ccc; width: 100%; min-width: 180px; max-height: 250px; /* Max-height garante a barra de rolagem */
             overflow-y: auto; z-index: 1001; box-shadow: 0 5px 15px rgba(0,0,0,0.2); padding: 5px 0;
             border-radius: 4px;
         }
@@ -124,11 +121,12 @@ require_once __DIR__ . '/../../db.php';
         #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
 
         /* Kanban Board */
-        .kanban-board { height: calc(100vh - 145px); overflow-y: hidden; }
+        .kanban-board { height: calc(100vh - 145px); padding-bottom: 20px; }
         .kanban-column {
             background-color: var(--white); border: 1px solid #ddd;
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 100%; 
+            /* min-height removido daqui. O flex-grow fará as colunas ocuparem 100% da altura da tela */
         }
         .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-primary); }
         .kanban-header h3 { margin: 0 0 3px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }
@@ -180,7 +178,7 @@ require_once __DIR__ . '/../../db.php';
         input:checked ~ .toggle-text.b2c { color: var(--purple-b2c); }
         .chart-canvas-wrapper { width: 100%; min-height: 250px; flex-grow: 1; position: relative; }
 
-        /* Tabela Lateral (Drill-down Style) */
+        /* Tabela Lateral */
         .piramide-right-col { display: flex; flex-direction: column; height: 100%; }
         #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 0;}
         #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444; z-index: 2;}
@@ -211,7 +209,6 @@ require_once __DIR__ . '/../../db.php';
 
         /* === MEDIA QUERIES PARA MOBILE === */
         @media (max-width: 991px) {
-            body { overflow-y: auto; } 
             .header { flex-direction: column; align-items: stretch; padding: 15px; }
             .filters { flex-direction: column; align-items: stretch; width: 100%; flex-wrap: wrap; } 
             .multiselect-container { max-width: 100%; width: 100%; flex: 1 1 100%; }
@@ -223,7 +220,10 @@ require_once __DIR__ . '/../../db.php';
             #piramide-view { height: auto; margin-bottom: 40px; } 
             .piramide-right-col { border-left: none !important; padding-left: 0 !important; border-top: 2px solid #eee; padding-top: 20px; margin-top: 20px; }
             .kanban-cards { grid-template-columns: 1fr; } 
+            
             .kanban-board { height: auto; margin-bottom: 40px; }
+            /* No celular a coluna cresce minimamente pra não sumir o card */
+            .kanban-column { min-height: 400px; } 
         }
         @media (min-width: 992px) {
             .piramide-right-col { border-left: 1px solid #eee; padding-left: 15px; }
