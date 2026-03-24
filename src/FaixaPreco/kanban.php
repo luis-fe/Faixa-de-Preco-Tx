@@ -35,67 +35,66 @@ require_once __DIR__ . '/../../db.php';
             color: var(--green-primary);
             margin: 0; padding: 0;
             overflow-x: hidden;
+            overflow-y: hidden; 
         }
 
         .header {
             background-color: var(--green-primary);
             color: var(--white);
-            padding: 10px 20px; 
-            display: flex; flex-wrap: wrap; gap: 15px; 
+            padding: 8px 15px; /* Ligeiramente reduzido para caber tudo */
+            display: flex; gap: 10px; 
             align-items: center; justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative; z-index: 100;
         }
 
-        .logo-header {
-            height: 35px; 
-            object-fit: contain; 
-            margin-right: 10px; 
-            border-radius: 4px; 
-        }
+        .logo-header { height: 35px; object-fit: contain; border-radius: 4px; }
 
         .top-nav {
-            background-color: var(--white);
-            padding: 8px 20px; 
-            display: flex;
-            gap: 8px;
-            border-bottom: 1px solid #ccc;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            position: relative; z-index: 90;
-            flex-wrap: wrap; 
+            background-color: var(--white); padding: 8px 20px; display: flex; gap: 8px;
+            border-bottom: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative; z-index: 90; flex-wrap: wrap; 
         }
         .nav-tab {
-            background: none; border: none; color: var(--green-primary); 
-            padding: 4px 12px; border-radius: 8px; font-weight: bold; 
-            cursor: pointer; transition: 0.3s; font-size: 0.75em; 
-            text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;
+            background: none; border: none; color: var(--green-primary); padding: 4px 12px; 
+            border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; 
+            font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;
         }
         .nav-tab.active { background: var(--green-primary); color: var(--white); opacity: 1; }
         .nav-tab:hover { background: var(--green-light); opacity: 1; }
         .nav-tab.active:hover { background: var(--green-primary); }
 
-        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; width: 100%; justify-content: flex-start; }
+        /* MAGICA DO LAYOUT: Força 1 linha no PC (nowrap) e encolhe os elementos flex-shrink */
+        .filters { 
+            display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; 
+            width: 100%; justify-content: flex-start; overflow-x: auto;
+        }
+        
+        .filters::-webkit-scrollbar { height: 4px; }
+        .filters::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
 
         #filter-plano {
-            padding: 6px 10px; border-radius: 4px; border: 1px solid var(--white);
+            padding: 4px 8px; border-radius: 4px; border: 1px solid var(--white);
             background: var(--white); color: var(--green-primary);
-            font-weight: bold; cursor: pointer; font-size: 0.85em;
+            font-weight: bold; cursor: pointer; font-size: 0.8em; flex-shrink: 0;
         }
 
-        .multiselect-container { position: relative; display: inline-block; min-width: 160px; flex-grow: 1; max-width: 300px; }
+        .multiselect-container { position: relative; display: inline-block; flex: 1 1 auto; min-width: 110px; max-width: 160px; }
         .select-box {
             background-color: var(--white); color: var(--green-primary);
-            padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;
-            cursor: pointer; font-size: 0.85em; font-weight: bold;
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc;
+            cursor: pointer; font-size: 0.75em; font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center; white-space: nowrap;
         }
-        .filter-subtitle { color: #888; font-size: 0.8em; font-weight: normal; margin-left: 4px; }
-        .select-box::after { content: '▼'; font-size: 0.7em; margin-left: 8px; color: #888; }
+        
+        .filter-subtitle { color: #888; font-size: 0.85em; font-weight: normal; margin-left: 2px; }
+        .select-box::after { content: '▼'; font-size: 0.6em; margin-left: 4px; color: #888; }
         
         .checkboxes-list {
             display: none; position: absolute; background-color: var(--white);
-            border: 1px solid #ccc; width: 100%; max-height: 250px;
-            overflow-y: auto; z-index: 1001; box-shadow: 0 5px 15px rgba(0,0,0,0.2); padding: 5px 0; border-radius: 4px;
+            border: 1px solid #ccc; width: 100%; min-width: 180px; max-height: 250px;
+            overflow-y: auto; z-index: 1001; box-shadow: 0 5px 15px rgba(0,0,0,0.2); padding: 5px 0;
+            border-radius: 4px;
         }
         .checkboxes-list.show { display: block; }
         .checkboxes-list label { display: block; padding: 6px 12px; color: #333; font-size: 0.8em; cursor: pointer; }
@@ -104,56 +103,51 @@ require_once __DIR__ . '/../../db.php';
 
         .global-indicator {
             background-color: var(--white); color: var(--green-primary);
-            padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em;
-            border: 2px solid var(--green-medium); margin-left: auto; white-space: nowrap;
+            padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em;
+            border: 2px solid var(--green-medium); white-space: nowrap; flex-shrink: 0;
         }
 
+        .btn-group-desktop { display: flex; gap: 8px; flex-shrink: 0;}
+        
         .btn-custom {
             background-color: var(--green-medium); color: var(--white);
-            border: 1px solid var(--white); padding: 6px 12px;
-            cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 0.85em;
+            border: 1px solid var(--white); padding: 4px 10px;
+            cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 0.75em; white-space: nowrap;
         }
         .btn-custom:hover { background-color: var(--white); color: var(--green-medium); border-color: var(--green-medium); }
 
         #btn-limpar-filtros {
             background: none; border: none; color: var(--green-light);
-            text-decoration: underline; cursor: pointer; font-size: 0.8em;
-            padding: 5px; opacity: 0.8; white-space: nowrap;
+            text-decoration: underline; cursor: pointer; font-size: 0.75em;
+            padding: 4px; opacity: 0.8; white-space: nowrap; flex-shrink: 0;
         }
         #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
 
-        /* ==========================================
-           KANBAN BOARD
-           ========================================== */
-        .kanban-board { min-height: calc(100vh - 170px); height: auto; }
-        
+        /* Kanban Board */
+        .kanban-board { height: calc(100vh - 145px); overflow-y: hidden; }
         .kanban-column {
-            background-color: var(--white); flex: 1; border: 2px solid var(--green-medium);
+            background-color: var(--white); border: 1px solid #ddd;
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
-            height: 100%; min-height: 400px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 100%; 
         }
-        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; }
-        .kanban-header h3 { margin: 0 0 3px 0; font-size: 1.1em; font-weight: bold; }
-        .range-info { font-size: 0.85em; opacity: 0.9; display: block; margin-bottom: 3px; color: #fff;}
-        .mix-info { display: block; font-size: 1.1em; font-weight: bold; color: var(--white); }
+        .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-primary); }
+        .kanban-header h3 { margin: 0 0 3px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }
+        .range-info { font-size: 0.75em; opacity: 0.9; display: block; margin-bottom: 3px; color: #fff;}
+        .mix-info { display: block; font-size: 1em; font-weight: bold; color: var(--white); text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
         
         .kanban-cards {
-            padding: 15px; overflow-y: auto; flex-grow: 1; background-color: #fafafa;
-            display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15px; align-content: start;
+            padding: 10px; overflow-y: auto; flex-grow: 1; background-color: #f5f5f5;
+            display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 10px; align-content: start;
         }
         
-        /* ==========================================
-           O CARD BLINDADO (Novo nome para evitar Bootstrap)
-           ========================================== */
+        /* O CARD BLINDADO */
         .meu-card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
-            padding: 10px; padding-bottom: 22px; 
-            border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
+            padding: 10px; padding-bottom: 22px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-height: 90px; justify-content: space-between;
             overflow: hidden; word-wrap: break-word; position: relative; transition: transform 0.2s;
         }
         .meu-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-        
         .meu-card .info-container { display: flex; flex-direction: column; gap: 2px; }
         .meu-card .ref-code { font-size: 0.9em; color: #222; font-weight: bold; display: block; }
         .meu-card .description { font-size: 0.78em; color: #757575; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0;}
@@ -162,17 +156,14 @@ require_once __DIR__ . '/../../db.php';
         .meu-card .price { color: var(--green-primary); font-weight: 800; font-size: 1.15em; white-space: nowrap; }
         .meu-card .markup { color: #888; font-size: 0.85em; font-weight: bold; }
         .meu-card .price-b2c { color: var(--purple-b2c); font-size: 0.75em; font-weight: bold; display: block; margin-top: -2px; }
-
         .meu-card .subcolecao-badge {
-            position: absolute; bottom: 0; right: 0; font-size: 0.68em; 
-            font-weight: bold; padding: 3px 8px; border-top-left-radius: 6px; 
-            letter-spacing: 0.5px; text-transform: uppercase;
+            position: absolute; bottom: 0; right: 0; font-size: 0.68em; font-weight: bold; padding: 3px 8px; border-top-left-radius: 6px; 
+            letter-spacing: 0.5px; text-transform: uppercase; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        /* ==========================================
-           VISÃO PIRÂMIDE
-           ========================================== */
-        #piramide-view { min-height: calc(100vh - 165px); height: auto; }
+        /* VISÃO PIRÂMIDE */
+        #piramide-view { height: calc(100vh - 140px); margin-bottom: 1px; }
+        #piramide-view > .row { height: 100%; }
         .chart-controls { display: flex; justify-content: flex-start; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; gap: 15px; }
         .control-label { font-size: 0.85em; font-weight: bold; color: #555; margin-bottom: 0;}
         .price-toggle-container { display: flex; align-items: center; gap: 10px; background: #f5f5f5; padding: 5px 15px; border-radius: 20px; border: 1px solid #ddd; }
@@ -187,15 +178,14 @@ require_once __DIR__ . '/../../db.php';
         input:checked + .slider:before { transform: translateX(20px); }
         input:checked ~ .toggle-text.b2b { color: #999; }
         input:checked ~ .toggle-text.b2c { color: var(--purple-b2c); }
-        
-        .chart-canvas-wrapper { width: 100%; min-height: 400px; flex-grow: 1; position: relative; }
+        .chart-canvas-wrapper { width: 100%; min-height: 250px; flex-grow: 1; position: relative; }
 
-        /* Tabela Lateral */
-        .piramide-right-col { display: flex; flex-direction: column; height: 100%; min-height: 400px; }
+        /* Tabela Lateral (Drill-down Style) */
+        .piramide-right-col { display: flex; flex-direction: column; height: 100%; }
         #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 0;}
-        #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444;}
+        #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444; z-index: 2;}
         #side-summary-table td { padding: 6px 8px; border-bottom: 1px solid #eee; }
-        #side-summary-table tbody tr { cursor: pointer; transition: 0.2s; }
+        #side-summary-table tbody tr { transition: 0.2s; }
         #side-summary-table tbody tr:hover { background-color: #f1f8e9; }
         #side-summary-table tbody tr.dimmed { opacity: 0.35; }
         #side-summary-table tbody tr.selected { background-color: var(--green-light); border-left: 4px solid var(--green-primary); }
@@ -206,7 +196,7 @@ require_once __DIR__ . '/../../db.php';
         .close-modal { position: absolute; top: 8px; right: 12px; font-size: 22px; cursor: pointer; color: var(--green-primary); font-weight: bold; opacity: 0.7; z-index: 10; }
         .close-modal:hover { opacity: 1; }
         
-        .footer { text-align: center; font-size: 0.75em; color: #888; padding: 8px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ddd; z-index: 80;}
+        .footer { text-align: center; font-size: 0.75em; color: #888; padding: 8px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ddd; z-index: 80; height: 35px;}
 
         #table-resumo { width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 0;}
         #table-resumo th, #table-resumo td { border: 1px solid #eee; padding: 8px; font-size: 0.85em; text-align: left; }
@@ -221,16 +211,19 @@ require_once __DIR__ . '/../../db.php';
 
         /* === MEDIA QUERIES PARA MOBILE === */
         @media (max-width: 991px) {
-            .header { flex-direction: column; align-items: stretch; }
-            .filters { flex-direction: column; align-items: stretch; width: 100%; } 
-            .multiselect-container { max-width: 100%; width: 100%; }
+            body { overflow-y: auto; } 
+            .header { flex-direction: column; align-items: stretch; padding: 15px; }
+            .filters { flex-direction: column; align-items: stretch; width: 100%; flex-wrap: wrap; } 
+            .multiselect-container { max-width: 100%; width: 100%; flex: 1 1 100%; }
+            .logo-header { margin: 0 auto 10px auto; display: block; }
             .global-indicator { margin-left: 0; text-align: center; margin-top: 10px; }
-            .btn-group-mobile { display: flex; gap: 10px; width: 100%; }
-            .btn-group-mobile .btn-custom { flex: 1; }
+            .btn-group-desktop { flex-direction: column; width: 100%; }
+            .btn-group-desktop .btn-custom { width: 100%; }
             
+            #piramide-view { height: auto; margin-bottom: 40px; } 
             .piramide-right-col { border-left: none !important; padding-left: 0 !important; border-top: 2px solid #eee; padding-top: 20px; margin-top: 20px; }
-            
-            .kanban-cards { grid-template-columns: 1fr !important; } /* No celular 1 card por linha */
+            .kanban-cards { grid-template-columns: 1fr; } 
+            .kanban-board { height: auto; margin-bottom: 40px; }
         }
         @media (min-width: 992px) {
             .piramide-right-col { border-left: 1px solid #eee; padding-left: 15px; }
@@ -242,6 +235,7 @@ require_once __DIR__ . '/../../db.php';
     <div class="header">
         <div class="filters">
             <img src="../static/logo.jpeg" alt="Logo" class="logo-header">
+
             <select id="filter-plano">
                 <option value="">PLANO</option>
                 <?php
@@ -251,29 +245,40 @@ require_once __DIR__ . '/../../db.php';
                 }
                 ?>
             </select>
+
             <div class="multiselect-container">
                 <div class="select-box" onclick="toggleDropdown('list-colecao')">
-                    <div>COLEÇÕES <span class="filter-subtitle" id="sub-colecao"></span></div>
+                    <div>COLEÇÃO <span class="filter-subtitle" id="sub-colecao-main"></span></div>
                 </div>
                 <div class="checkboxes-list" id="list-colecao"></div>
             </div>
+
+            <div class="multiselect-container">
+                <div class="select-box" onclick="toggleDropdown('list-subcolecao')">
+                    <div>SUB.COL <span class="filter-subtitle" id="sub-subcolecao"></span></div>
+                </div>
+                <div class="checkboxes-list" id="list-subcolecao"></div>
+            </div>
+
             <div class="multiselect-container">
                 <div class="select-box" onclick="toggleDropdown('list-linha')">
                     <div>LINHAS <span class="filter-subtitle" id="sub-linha"></span></div>
                 </div>
                 <div class="checkboxes-list" id="list-linha"></div>
             </div>
+
             <div class="multiselect-container">
                 <div class="select-box" onclick="toggleDropdown('list-grupo')">
                     <div>GRUPOS <span class="filter-subtitle" id="sub-grupo"></span></div>
                 </div>
                 <div class="checkboxes-list" id="list-grupo"></div>
             </div>
-            <div class="btn-group-mobile">
+
+            <div class="btn-group-desktop">
                 <button class="btn-custom" id="btn-config">Faixas</button>
-                <button class="btn-custom" id="btn-resumo">Resumo Mix</button> 
+                <button class="btn-custom" id="btn-resumo">Mix</button> 
+                <button id="btn-limpar-filtros" title="Limpar todos os filtros">Limpar</button>
             </div>
-            <button id="btn-limpar-filtros" title="Limpar todos os filtros">Limpar Filtros</button>
         </div>
         <div class="global-indicator mt-2 mt-lg-0">Mix Total: <span id="total-mix">0</span></div>
     </div>
@@ -284,7 +289,7 @@ require_once __DIR__ . '/../../db.php';
     </div>
 
     <div class="kanban-board container-fluid py-3" id="view-kanban" style="display: flex;">
-        <div class="row w-100 m-0 g-3">
+        <div class="row w-100 m-0 g-3" style="height: 100%;">
             <div class="col-12 col-lg-4">
                 <div class="kanban-column" id="col-entrada">
                     <div class="kanban-header">
@@ -319,8 +324,9 @@ require_once __DIR__ . '/../../db.php';
     </div>
 
     <div class="container-fluid py-3" id="piramide-view" style="display: none;">
-        <div class="row w-100 m-0 bg-white border rounded shadow-sm p-3">
-            <div class="col-12 col-lg-7 d-flex flex-column mb-4 mb-lg-0">
+        <div class="row w-100 m-0 bg-white border rounded shadow-sm p-3" style="height: 100%;">
+            
+            <div class="col-12 col-lg-7 d-flex flex-column mb-4 mb-lg-0" style="height: 100%;">
                 <div class="chart-controls">
                     <label class="control-label">Análise por:</label>
                     <div class="price-toggle-container">
@@ -336,26 +342,32 @@ require_once __DIR__ . '/../../db.php';
                     <canvas id="graficoPiramide"></canvas>
                 </div>
             </div>
+
             <div class="col-12 col-lg-5 piramide-right-col">
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                    <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary); margin-bottom: 0;">GRUPO:</label>
-                    <select id="filtro-tabela-grupo" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold">
-                        <option value="TODOS">TODOS</option>
-                    </select>
+                <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                    
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary); margin-bottom: 0;">GÊNERO GLOBAL:</label>
+                        <select id="filtro-tabela-genero" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold" style="width: auto; font-size: 0.85em;">
+                            <option value="TODOS" selected>TODOS</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Infantil">Infantil</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <button id="btn-limpar-piramide-filtros" class="btn btn-sm btn-link text-decoration-none text-danger fw-bold" style="font-size: 0.8em; padding: 0;">Limpar Expansão</button>
+
                 </div>
                 <div style="overflow-y: auto; flex-grow: 1;">
                     <table id="side-summary-table">
-                        <thead>
-                            <tr>
-                                <th>Grupo</th>
-                                <th>Linha</th>
-                                <th style="text-align: center;">Total</th>
-                            </tr>
-                        </thead>
+                        <thead></thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
+
         </div>
     </div>
 
