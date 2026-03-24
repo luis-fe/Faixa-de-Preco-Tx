@@ -10,9 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let backupFiltros = null;
     let chartInstance = null; 
     
-    // VARIÁVEIS DE ESTADO DA NOVA TABELA DE NÍVEIS
-    let visaoExpandida = false; // False = Gênero | True = Gênero + Grupo
-    let selecaoPiramide = null; // Guarda a linha clicada na tabela
+    // VARIÁVEIS DA TABELA PIRÂMIDE
+    let visaoExpandida = false; 
+    let selecaoPiramide = null; 
 
     let currentSyncTime = '--:--';
     let pollingInterval = null;
@@ -23,9 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const listGrupo = document.getElementById('list-grupo');
     const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
     
-    // NOVOS ELEMENTOS
     const filtroTabelaGenero = document.getElementById('filtro-tabela-genero');
-    const btnExplodeVisao = document.getElementById('btn-explode-visao');
 
     const modalConfig = document.getElementById('configModal');
     const modalSelGrupo = document.getElementById('modal-filter-grupo');
@@ -59,16 +57,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleTipoPreco.addEventListener('change', () => { atualizarKanban(); });
 
-    // --- CONTROLES DA NOVA TABELA (GÊNERO E EXPLODIR) ---
-    btnExplodeVisao.addEventListener('click', () => {
-        visaoExpandida = !visaoExpandida;
-        btnExplodeVisao.innerHTML = visaoExpandida ? '🔼 Recolher Grupos' : '🔽 Explodir Grupos';
-        selecaoPiramide = null; // Reseta seleção ao mudar a visão
-        atualizarKanban();
-    });
+    // --- NOVA LÓGICA DE POPULAR O GRUPO DA PIRÂMIDE ---
+    function popularFiltroPiramideGrupo() {
+        const genSel = filtroTabelaGenero.value;
+        const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
+        const fCol = getChecked('list-colecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
+        
+        let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
+        
+        let gruposDisponiveis = [];
+        if (genSel === 'TODOS') {
+            gruposDisponiveis = [...new Set(filtradosGerais.map(p => p.grupo))].sort();
+        } else {
+            gruposDisponiveis = [...new Set(filtradosGerais.filter(p => p.genero === genSel).map(p => p.grupo))].sort();
+        }
 
+        const container = document.getElementById('list-piramide-grupo');
+        
+        // Renderiza com NENHUM selecionado por padrão
+        container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 6px; color: var(--green-primary); font-weight: bold;">
+            <input type="checkbox" class="select-all-piramide"> Selecionar Tudo</label>` +
+            gruposDisponiveis.map(val => `<label><input type="checkbox" class="item-checkbox-piramide" value="${val}"> ${val}</label>`).join('');
+
+        const chkAll = container.querySelector('.select-all-piramide');
+        const chkItems = container.querySelectorAll('.item-checkbox-piramide');
+
+        chkAll.addEventListener('change', (e) => {
+            chkItems.forEach(chk => chk.checked = e.target.checked);
+            atualizarKanban();
+        });
+
+        chkItems.forEach(chk => chk.addEventListener('change', () => {
+            chkAll.checked = Array.from(chkItems).every(c => c.checked);
+            atualizarKanban();
+        }));
+    }
+
+    // Dispara a re-população do dropdown lateral quando o Gênero mudar
     filtroTabelaGenero.addEventListener('change', () => {
-        selecaoPiramide = null; // Reseta o clique na tabela ao mudar o dropdown
+        selecaoPiramide = null; 
+        popularFiltroPiramideGrupo(); // Popula e deixa desmarcado (NENHUM)
         atualizarKanban();
     });
 
@@ -102,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return {
                         ref: p.referencia || 'N/A', desc: p.descricao || '', 
                         colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: rawGrupo,
-                        genero: generoMap, // Propriedade injetada
+                        genero: generoMap, 
                         subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', 
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), 
                         precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
@@ -118,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 popularGrupoModal();
+                popularFiltroPiramideGrupo(); // Monta a nova lista de grupos lateral na primeira carga
                 atualizarKanban();
                 iniciarPolling(plano);
             });
@@ -169,8 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function atualizarKanban() {
         if (!selPlano.value) return; 
 
-        const getChecked = (container) => Array.from(container.querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-        const fCol = getChecked(listColecao), fLin = getChecked(listLinha), fGru = getChecked(listGrupo);
+        const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
+        const fCol = getChecked('list-colecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
         const analisarB2C = toggleTipoPreco.checked;
 
         const validCol = new Set(produtosBase.filter(p => fLin.includes(p.linha) && fGru.includes(p.grupo)).map(p => p.colecao));
@@ -178,8 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const validGru = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha)).map(p => p.grupo));
         const effCol = fCol.filter(x => validCol.has(x)), effLin = fLin.filter(x => validLin.has(x)), effGru = fGru.filter(x => validGru.has(x));
 
-        const updateVis = (cont, vSet) => { cont.querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
-        updateVis(listColecao, validCol); updateVis(listLinha, validLin); updateVis(listGrupo, validGru);
+        const updateVis = (id, vSet) => { document.getElementById(id).querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
+        updateVis('list-colecao', validCol); updateVis('list-linha', validLin); updateVis('list-grupo', validGru);
 
         let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
@@ -191,9 +220,30 @@ document.addEventListener('DOMContentLoaded', () => {
             filtradosTabela = filtradosTabela.filter(p => p.genero === genSel);
         }
 
+        // --- 2. NOVA LOGICA: EXPLOSÃO POR CHECKBOXES DE GRUPO ---
+        const chkPiramideGrupos = Array.from(document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide:checked')).map(c => c.value);
+        
+        if (chkPiramideGrupos.length === 0) {
+            visaoExpandida = false;
+            document.getElementById('sub-piramide-grupo').innerText = '(Nenhum)';
+        } else {
+            visaoExpandida = true;
+            // Filtra a tabela para exibir apenas os grupos selecionados
+            filtradosTabela = filtradosTabela.filter(p => chkPiramideGrupos.includes(p.grupo));
+            
+            const totalGruposBox = document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide').length;
+            if (chkPiramideGrupos.length === totalGruposBox) {
+                document.getElementById('sub-piramide-grupo').innerText = '(Todos)';
+            } else if (chkPiramideGrupos.length === 1) {
+                document.getElementById('sub-piramide-grupo').innerText = `(${chkPiramideGrupos[0]})`;
+            } else {
+                document.getElementById('sub-piramide-grupo').innerText = '(...)';
+            }
+        }
+
         atualizarTabelaLateral(filtradosTabela);
 
-        // --- 2. FILTRAGEM PARA O GRÁFICO E KANBAN ---
+        // --- 3. FILTRAGEM FINAL PARA O GRÁFICO E KANBAN ---
         let filtradosParaVisuais = filtradosTabela;
         
         if (selecaoPiramide) {
@@ -271,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalGeralTabela = 0;
         const mapa = {};
 
-        // Agrupa dependendo da visão (Gênero ou Gênero+Grupo)
         filtradosTabela.forEach(p => {
             const key = visaoExpandida ? p.genero + '|' + p.grupo : p.genero;
             if (!mapa[key]) mapa[key] = { genero: p.genero, grupo: p.grupo, total: 0 };
@@ -634,8 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
         
         filtroTabelaGenero.value = 'TODOS';
-        visaoExpandida = false;
-        btnExplodeVisao.innerHTML = '🔽 Explodir Grupos';
+        popularFiltroPiramideGrupo(); // Reseta os grupos da piramide para NENHUM
         selecaoPiramide = null; 
         
         atualizarKanban();

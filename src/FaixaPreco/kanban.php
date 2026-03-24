@@ -35,6 +35,7 @@ require_once __DIR__ . '/../../db.php';
             color: var(--green-primary);
             margin: 0; padding: 0;
             overflow-x: hidden;
+            overflow-y: hidden; /* Evita rolagem dupla na página inteira */
         }
 
         .header {
@@ -135,13 +136,12 @@ require_once __DIR__ . '/../../db.php';
         #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
 
         /* Kanban Board */
-        .kanban-board { min-height: calc(100vh - 170px); height: auto; }
+        .kanban-board { height: calc(100vh - 145px); overflow-y: hidden; }
         .kanban-column {
             background-color: var(--white); border: 1px solid #ddd;
             border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             height: 100%; 
-            min-height: 400px; 
         }
         .kanban-header { background-color: var(--green-medium); color: var(--white); padding: 8px; text-align: center; border-bottom: 2px solid var(--green-primary); }
         .kanban-header h3 { margin: 0 0 3px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }
@@ -153,9 +153,7 @@ require_once __DIR__ . '/../../db.php';
             display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 10px; align-content: start;
         }
         
-        /* ==========================================
-           O CARD BLINDADO (Novo nome para evitar Bootstrap)
-           ========================================== */
+        /* O CARD BLINDADO */
         .meu-card {
             background-color: var(--white); border: 1px solid var(--green-medium); border-top: 4px solid var(--green-primary);
             padding: 10px; padding-bottom: 22px; 
@@ -180,10 +178,18 @@ require_once __DIR__ . '/../../db.php';
             letter-spacing: 0.5px; text-transform: uppercase; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        /* VISÃO PIRÂMIDE */
+        /* ==========================================
+           VISÃO PIRÂMIDE - AJUSTE DE ALTURA MÁXIMA
+           ========================================== */
         #piramide-view {
-            min-height: calc(100vh - 165px); 
-            height: auto;
+            /* Calcula 100% da tela, tira o Header (~65px), Nav (~45px) e Footer (~30px) e crava 1px pro bottom */
+            height: calc(100vh - 140px); 
+            margin-bottom: 1px;
+        }
+
+        /* Garante que a linha branca preencha toda a altura da Pirâmide */
+        #piramide-view > .row {
+            height: 100%;
         }
 
         .chart-controls {
@@ -212,15 +218,15 @@ require_once __DIR__ . '/../../db.php';
         input:checked ~ .toggle-text.b2b { color: #999; }
         input:checked ~ .toggle-text.b2c { color: var(--purple-b2c); }
         
-        .chart-canvas-wrapper { width: 100%; min-height: 400px; flex-grow: 1; position: relative; }
+        .chart-canvas-wrapper { width: 100%; min-height: 250px; flex-grow: 1; position: relative; }
 
         /* Tabela Lateral */
         .piramide-right-col {
-            display: flex; flex-direction: column; height: 100%; min-height: 400px;
+            display: flex; flex-direction: column; height: 100%;
         }
 
         #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 0;}
-        #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444;}
+        #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444; z-index: 2;}
         #side-summary-table td { padding: 6px 8px; border-bottom: 1px solid #eee; }
         
         #side-summary-table tbody tr { cursor: pointer; transition: 0.2s; }
@@ -234,7 +240,7 @@ require_once __DIR__ . '/../../db.php';
         .close-modal { position: absolute; top: 8px; right: 12px; font-size: 22px; cursor: pointer; color: var(--green-primary); font-weight: bold; opacity: 0.7; z-index: 10; }
         .close-modal:hover { opacity: 1; }
         
-        .footer { text-align: center; font-size: 0.75em; color: #888; padding: 8px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ddd; z-index: 80;}
+        .footer { text-align: center; font-size: 0.75em; color: #888; padding: 8px; position: fixed; bottom: 0; width: 100%; background: var(--green-light); border-top: 1px solid #ddd; z-index: 80; height: 35px;}
 
         #table-resumo { width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 0;}
         #table-resumo th, #table-resumo td { border: 1px solid #eee; padding: 8px; font-size: 0.85em; text-align: left; }
@@ -249,6 +255,7 @@ require_once __DIR__ . '/../../db.php';
 
         /* === MEDIA QUERIES PARA MOBILE === */
         @media (max-width: 991px) {
+            body { overflow-y: auto; } /* Libera a rolagem no mobile */
             .header { flex-direction: column; align-items: stretch; }
             .filters { flex-direction: column; align-items: stretch; width: 100%; } 
             .multiselect-container { max-width: 100%; width: 100%; }
@@ -256,6 +263,7 @@ require_once __DIR__ . '/../../db.php';
             .btn-group-mobile { display: flex; gap: 10px; width: 100%; }
             .btn-group-mobile .btn-custom { flex: 1; }
             
+            #piramide-view { height: auto; margin-bottom: 40px; } /* Desliga trava no mobile */
             .piramide-right-col {
                 border-left: none !important;
                 padding-left: 0 !important;
@@ -263,7 +271,8 @@ require_once __DIR__ . '/../../db.php';
                 padding-top: 20px;
                 margin-top: 20px;
             }
-            .kanban-cards { grid-template-columns: 1fr; } /* 1 Card por linha no mobile */
+            .kanban-cards { grid-template-columns: 1fr; } 
+            .kanban-board { height: auto; margin-bottom: 40px; }
         }
         @media (min-width: 992px) {
             .piramide-right-col { border-left: 1px solid #eee; padding-left: 15px; }
@@ -324,7 +333,7 @@ require_once __DIR__ . '/../../db.php';
     </div>
 
     <div class="kanban-board container-fluid py-3" id="view-kanban" style="display: flex;">
-        <div class="row w-100 m-0 g-3">
+        <div class="row w-100 m-0 g-3" style="height: 100%;">
             
             <div class="col-12 col-lg-4">
                 <div class="kanban-column" id="col-entrada">
@@ -365,7 +374,7 @@ require_once __DIR__ . '/../../db.php';
     <div class="container-fluid py-3" id="piramide-view" style="display: none;">
         <div class="row w-100 m-0 bg-white border rounded shadow-sm p-3">
             
-            <div class="col-12 col-lg-7 d-flex flex-column mb-4 mb-lg-0">
+            <div class="col-12 col-lg-7 d-flex flex-column mb-4 mb-lg-0" style="height: 100%;">
                 <div class="chart-controls">
                     <label class="control-label">Análise por:</label>
                     <div class="price-toggle-container">
@@ -383,10 +392,11 @@ require_once __DIR__ . '/../../db.php';
             </div>
 
             <div class="col-12 col-lg-5 piramide-right-col">
-                <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary); margin-bottom: 0;">GÊNERO:</label>
-                        <select id="filtro-tabela-genero" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold">
+                        <select id="filtro-tabela-genero" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold" style="width: auto;">
                             <option value="TODOS" selected>TODOS</option>
                             <option value="Masculino">Masculino</option>
                             <option value="Feminino">Feminino</option>
@@ -394,12 +404,19 @@ require_once __DIR__ . '/../../db.php';
                             <option value="Outros">Outros</option>
                         </select>
                     </div>
-                    <button id="btn-explode-visao" class="btn btn-sm btn-outline-secondary fw-bold" style="white-space: nowrap;">🔽 Explodir Grupos</button>
+
+                    <div class="multiselect-container" style="min-width: 140px; flex-grow: 0;">
+                        <div class="select-box" onclick="toggleDropdown('list-piramide-grupo')" style="padding: 4px 10px;">
+                            <div>GRUPO <span class="filter-subtitle" id="sub-piramide-grupo">(Nenhum)</span></div>
+                        </div>
+                        <div class="checkboxes-list" id="list-piramide-grupo" style="width: 250px; right: 0;">
+                            </div>
+                    </div>
+
                 </div>
                 <div style="overflow-y: auto; flex-grow: 1;">
                     <table id="side-summary-table">
-                        <thead>
-                            </thead>
+                        <thead></thead>
                         <tbody></tbody>
                     </table>
                 </div>
