@@ -28,12 +28,16 @@ if (!empty($json_recebido)) {
             $sqlLimpar = 'DELETE FROM "produto_plano" WHERE plano = :plano';
             $pdo->prepare($sqlLimpar)->execute([':plano' => $nomePlano]);
 
-            // 4. Prepara os SQLs de Inserção
-            $sqlProd = 'INSERT INTO "produto" (referencia, descricao, colecao, linha, grupo, "classificacao") 
-                        VALUES (:ref, :desc, :col, :lin, :gru, :class)
+            // 4. Prepara os SQLs de Inserção (COM SUPORTE A SUB-COLEÇÃO)
+            $sqlProd = 'INSERT INTO "produto" (referencia, descricao, colecao, "sub-colecao", linha, grupo, "classificacao") 
+                        VALUES (:ref, :desc, :col, :subcol, :lin, :gru, :class)
                         ON CONFLICT (referencia) DO UPDATE SET 
-                        descricao = EXCLUDED.descricao, colecao = EXCLUDED.colecao, 
-                        linha = EXCLUDED.linha, grupo = EXCLUDED.grupo, "classificacao" = EXCLUDED."classificacao"';
+                        descricao = EXCLUDED.descricao, 
+                        colecao = EXCLUDED.colecao, 
+                        "sub-colecao" = EXCLUDED."sub-colecao",
+                        linha = EXCLUDED.linha, 
+                        grupo = EXCLUDED.grupo, 
+                        "classificacao" = EXCLUDED."classificacao"';
 
             $sqlPreco = 'INSERT INTO "produto_plano" (referencia, plano, "precoB2B", "precoB2C", "MkpB2B") 
                          VALUES (:ref, :plano, :precoB2B, :precoB2C, :mkpB2B)
@@ -70,14 +74,15 @@ if (!empty($json_recebido)) {
                         $mkp = (string) round($mkpNumerico, 2);
                     }
 
-                    // Salva Produto
+                    // Salva Produto com Subcoleção
                     $stmtProd->execute([
-                        ':ref'   => $ref,
-                        ':desc'  => $item['descricao'] ?? '',
-                        ':col'   => $item['colecao'] ?? '',
-                        ':lin'   => $item['linha'] ?? '',
-                        ':gru'   => $item['grupo'] ?? '',
-                        ':class' => $item['classificacao'] ?? ''
+                        ':ref'    => $ref,
+                        ':desc'   => $item['descricao'] ?? '',
+                        ':col'    => $item['colecao'] ?? '',
+                        ':subcol' => $item['subcolecao'] ?? '',
+                        ':lin'    => $item['linha'] ?? '',
+                        ':gru'    => $item['grupo'] ?? '',
+                        ':class'  => $item['classificacao'] ?? ''
                     ]);
 
                     // Salva Preços e Markup
