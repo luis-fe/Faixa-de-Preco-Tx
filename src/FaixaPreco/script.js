@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let chartInstance = null; 
     
     // VARIÁVEIS DA TABELA PIRÂMIDE (TREE-GRID)
-    let expandedCamadas = new Set(); // Guarda os IDs dos níveis abertos ("GEN|Masculino", "GRU|Masculino|Camisetas")
-    let selecaoPiramide = null; // { genero, grupo, linha } para o filtro visual
+    let expandedCamadas = new Set(); 
+    let selecaoPiramide = null; 
 
     let currentSyncTime = '--:--';
     let pollingInterval = null;
@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ELEMENTOS DO CABEÇALHO
     const selPlano = document.getElementById('filter-plano');
     const listColecao = document.getElementById('list-colecao');
+    const listSubcolecao = document.getElementById('list-subcolecao'); // NOVO ELEMENTO
     const listLinha = document.getElementById('list-linha');
     const listGrupo = document.getElementById('list-grupo');
     const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
@@ -63,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CONTROLES DE LIMPEZA DA PIRÂMIDE ---
     filtroTabelaGenero.addEventListener('change', () => {
         selecaoPiramide = null; 
-        expandedCamadas.clear(); // Fecha todas as abas ao mudar de gênero geral
+        expandedCamadas.clear(); 
         atualizarKanban();
     });
 
@@ -101,11 +102,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (['ACE FEM','CAL FEM', 'FEMININO'].includes(gUpper)) generoMap = 'Feminino';
                     else if (['INF BABY','INF MASC'].includes(gUpper)) generoMap = 'Infantil';
 
+                    // Lida com Subcoleção Nula/Vazia do Banco e atribui a string "NENHUMA" pra facilitar o checkbox
+                    let subC = p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '';
+                    if(subC.trim() === '' || subC.trim() === '-') subC = 'NENHUMA';
+
                     return {
                         ref: p.referencia || 'N/A', desc: p.descricao || '', 
                         colecao: p.colecao || 'GERAL', linha: p.linha || 'GERAL', grupo: rawGrupo,
                         genero: generoMap, 
-                        subcolecao: p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '', 
+                        subcolecao: subC, 
                         preco: limpaMoeda(p.precoB2B || p.precob2b || p.preco), 
                         precoB2C: limpaMoeda(p.precoB2C || p.precob2c),
                         mkp: parseFloat(p.MkpB2B || p.mkpb2b) || 0, eMax: parseFloat(p.faixa_entrada_max) || 0, iMax: parseFloat(p.faixa_inter_max) || 0
@@ -144,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
                         backupFiltros = { 
                             col: getChecked('list-colecao'), colAll: document.querySelector('#list-colecao .select-all').checked,
+                            subcol: getChecked('list-subcolecao'), subcolAll: document.querySelector('#list-subcolecao .select-all').checked,
                             lin: getChecked('list-linha'), linAll: document.querySelector('#list-linha .select-all').checked,
                             gru: getChecked('list-grupo'), gruAll: document.querySelector('#list-grupo .select-all').checked 
                         };
@@ -165,17 +171,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (nivel === 'GEN') {
             if (expandedCamadas.has(genId)) {
-                expandedCamadas.delete(genId); // Fecha a camada
-                selecaoPiramide = null; // Limpa o filtro correspondente
+                expandedCamadas.delete(genId); 
+                selecaoPiramide = null; 
             } else {
-                expandedCamadas.add(genId); // Abre a camada
-                selecaoPiramide = { genero, grupo: null, linha: null }; // Seta o filtro pro Gráfico
+                expandedCamadas.add(genId); 
+                selecaoPiramide = { genero, grupo: null, linha: null }; 
             }
         } 
         else if (nivel === 'GRU') {
             if (expandedCamadas.has(gruId)) {
                 expandedCamadas.delete(gruId);
-                // Ao fechar um grupo, o filtro "sobe" pro nível do Gênero pai
                 selecaoPiramide = { genero, grupo: null, linha: null };
             } else {
                 expandedCamadas.add(gruId);
@@ -183,9 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         else if (nivel === 'LIN') {
-            // Linha não expande, apenas seleciona
             if (selecaoPiramide && selecaoPiramide.linha === linha) {
-                // Se clicar na mesma linha, deseleciona e "sobe" pro Grupo pai
                 selecaoPiramide = { genero, grupo, linha: null };
             } else {
                 selecaoPiramide = { genero, grupo, linha };
@@ -199,29 +202,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selPlano.value) return; 
 
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-        const fCol = getChecked('list-colecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
+        
+        // LEITURA DOS NOVOS FILTROS
+        const fCol = getChecked('list-colecao'), fSubcol = getChecked('list-subcolecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
         const analisarB2C = toggleTipoPreco.checked;
 
-        const validCol = new Set(produtosBase.filter(p => fLin.includes(p.linha) && fGru.includes(p.grupo)).map(p => p.colecao));
-        const validLin = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fGru.includes(p.grupo)).map(p => p.linha));
-        const validGru = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha)).map(p => p.grupo));
-        const effCol = fCol.filter(x => validCol.has(x)), effLin = fLin.filter(x => validLin.has(x)), effGru = fGru.filter(x => validGru.has(x));
+        // VALIDANDO AS RELAÇÕES
+        const validCol = new Set(produtosBase.filter(p => fLin.includes(p.linha) && fGru.includes(p.grupo) && fSubcol.includes(p.subcolecao)).map(p => p.colecao));
+        const validSubcol = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo)).map(p => p.subcolecao));
+        const validLin = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fGru.includes(p.grupo) && fSubcol.includes(p.subcolecao)).map(p => p.linha));
+        const validGru = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fSubcol.includes(p.subcolecao)).map(p => p.grupo));
+        
+        const effCol = fCol.filter(x => validCol.has(x)), effSubcol = fSubcol.filter(x => validSubcol.has(x)), effLin = fLin.filter(x => validLin.has(x)), effGru = fGru.filter(x => validGru.has(x));
 
         const updateVis = (id, vSet) => { document.getElementById(id).querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
-        updateVis('list-colecao', validCol); updateVis('list-linha', validLin); updateVis('list-grupo', validGru);
+        updateVis('list-colecao', validCol); updateVis('list-subcolecao', validSubcol); updateVis('list-linha', validLin); updateVis('list-grupo', validGru);
 
-        // Base filtrada apenas pelo cabeçalho Global
-        let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
+        // Base filtrada cruzando TUDO, inclusive a nova Sub-Coleção
+        let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fSubcol.includes(p.subcolecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
-        // Aplica o filtro da caixa de Gênero Global da Pirâmide
         const genSel = filtroTabelaGenero.value;
         let filtradosTabela = filtradosGerais;
         if (genSel !== 'TODOS') filtradosTabela = filtradosTabela.filter(p => p.genero === genSel);
 
-        // Atualiza a montagem dinâmica da tabela em formato de árvore
         atualizarTabelaLateral(filtradosTabela);
 
-        // --- FILTRAGEM PARA O GRÁFICO E KANBAN ---
         let filtradosParaVisuais = filtradosTabela;
         
         if (selecaoPiramide) {
@@ -238,9 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selecaoPiramide) {
             setSub('sub-grupo', selecaoPiramide.grupo ? [selecaoPiramide.grupo] : effGru);
             setSub('sub-linha', selecaoPiramide.linha ? [selecaoPiramide.linha] : effLin);
-            setSub('sub-colecao', [...new Set(filtradosParaVisuais.map(p => p.colecao))]);
+            setSub('sub-colecao-main', [...new Set(filtradosParaVisuais.map(p => p.colecao))]);
+            setSub('sub-subcolecao', [...new Set(filtradosParaVisuais.map(p => p.subcolecao))]);
         } else {
-            setSub('sub-linha', effLin); setSub('sub-grupo', effGru); setSub('sub-colecao', effCol);
+            setSub('sub-linha', effLin); setSub('sub-grupo', effGru); setSub('sub-colecao-main', effCol); setSub('sub-subcolecao', effSubcol);
         }
 
         filtradosParaVisuais.sort((a, b) => a.preco - b.preco);
@@ -256,10 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div'); card.className = 'meu-card';
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
-            let nomeTag = (p.subcolecao && p.subcolecao.trim() !== '') ? p.subcolecao : p.colecao;
+            
+            // Tratamento visual para NENHUMA
+            let nomeTag = p.subcolecao === 'NENHUMA' ? '' : p.subcolecao;
             let badgeHtml = '';
             
-            if (nomeTag) {
+            if (nomeTag !== '') {
                 let txtMinusculo = nomeTag.toLowerCase();
                 let corFundo = '#757575'; let corTexto = '#ffffff'; 
                 if (txtMinusculo.includes('starter') || txtMinusculo.includes('estoque futuro')) corFundo = '#9E9E9E'; 
@@ -277,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
             else { cols.premium.appendChild(card); cont.p++; }
         });
 
-        // Calculo de porcentagens arredondadas
         let totalVisuais = cont.e + cont.i + cont.p;
         let percE = totalVisuais > 0 ? Math.round((cont.e / totalVisuais) * 100) : 0;
         let percI = totalVisuais > 0 ? Math.round((cont.i / totalVisuais) * 100) : 0;
@@ -297,8 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none'; }
     }
 
-    // --- CONSTRUÇÃO DA TABELA HIERÁRQUICA COM INDENTAÇÃO (ACCORDION) ---
-// --- CONSTRUÇÃO DA TABELA HIERÁRQUICA COM INDENTAÇÃO E % NO NÍVEL ---
     function atualizarTabelaLateral(filtradosTabela) {
         const tbody = document.querySelector('#side-summary-table tbody');
         const thead = document.querySelector('#side-summary-table thead');
@@ -306,7 +311,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalGeralTabela = filtradosTabela.length;
         const hierarquia = {};
 
-        // Monta o objeto em árvore
         filtradosTabela.forEach(p => {
             if (!hierarquia[p.genero]) hierarquia[p.genero] = { total: 0, grupos: {} };
             hierarquia[p.genero].total++;
@@ -324,14 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         Object.keys(hierarquia).sort().forEach(gen => {
             const genData = hierarquia[gen];
-            
-            // CÁLCULO %: Nível 1 (% sobre o Total Geral)
             const percGen = totalGeralTabela > 0 ? Math.round((genData.total / totalGeralTabela) * 100) : 0;
-            
             const genId = `GEN|${gen}`;
             const isExpandedGen = expandedCamadas.has(genId);
             
-            // LÓGICA DE DESTAQUE (Highlight vs Dimmed)
             const matchGen = (selecaoPiramide && selecaoPiramide.genero === gen);
             const exactGen = matchGen && !selecaoPiramide.grupo;
             const dimmedGen = selecaoPiramide && !matchGen;
@@ -340,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const iconGen = Object.keys(genData.grupos).length > 0 ? (isExpandedGen ? '▼' : '▶') : '•';
             const escGen = gen.replace(/'/g, "\\'");
 
-            // HTML: 1º NÍVEL (GÊNERO)
             html += `
             <tr class="${classGen}" onclick="toggleCamada('GEN', '${escGen}', null, null)">
                 <td style="font-weight: bold; cursor: pointer; color: var(--green-primary);">${iconGen} ${gen}</td>
@@ -351,14 +350,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isExpandedGen) {
                 Object.keys(genData.grupos).sort().forEach(gru => {
                     const gruData = genData.grupos[gru];
-                    
-                    // CÁLCULO %: Nível 2 (% sobre o Total do Gênero Pai)
                     const percGru = genData.total > 0 ? Math.round((gruData.total / genData.total) * 100) : 0;
-                    
                     const gruId = `GRU|${gen}|${gru}`;
                     const isExpandedGru = expandedCamadas.has(gruId);
                     
-                    // LÓGICA DE DESTAQUE
                     const matchGru = matchGen && (!selecaoPiramide.grupo || selecaoPiramide.grupo === gru);
                     const exactGru = matchGen && selecaoPiramide.grupo === gru && !selecaoPiramide.linha;
                     const dimmedGru = selecaoPiramide && !matchGru;
@@ -367,7 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const iconGru = Object.keys(gruData.linhas).length > 0 ? (isExpandedGru ? '▼' : '▶') : '•';
                     const escGru = gru.replace(/'/g, "\\'");
 
-                    // HTML: 2º NÍVEL (GRUPO)
                     html += `
                     <tr class="${classGru}" onclick="toggleCamada('GRU', '${escGen}', '${escGru}', null)">
                         <td style="padding-left: 20px; font-weight: bold; cursor: pointer; color: #444;">${iconGru} ${gru}</td>
@@ -378,11 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isExpandedGru) {
                         Object.keys(gruData.linhas).sort().forEach(lin => {
                             const linTotal = gruData.linhas[lin].total;
-                            
-                            // CÁLCULO %: Nível 3 (% sobre o Total do Grupo Pai)
                             const percLin = gruData.total > 0 ? Math.round((linTotal / gruData.total) * 100) : 0;
                             
-                            // LÓGICA DE DESTAQUE
                             const matchLin = matchGru && (!selecaoPiramide.linha || selecaoPiramide.linha === lin);
                             const exactLin = matchGen && selecaoPiramide.grupo === gru && selecaoPiramide.linha === lin;
                             const dimmedLin = selecaoPiramide && !matchLin;
@@ -390,7 +381,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             const escLin = lin.replace(/'/g, "\\'");
 
-                            // HTML: 3º NÍVEL (LINHA)
                             html += `
                             <tr class="${classLin}" onclick="toggleCamada('LIN', '${escGen}', '${escGru}', '${escLin}')">
                                 <td style="padding-left: 40px; cursor: pointer; color: #666;">• ${lin}</td>
@@ -633,6 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }));
         };
         preencher(listColecao, unique('colecao')); 
+        preencher(listSubcolecao, unique('subcolecao')); // Gera os checks da Sub-coleção
         preencher(listLinha, unique('linha')); 
         preencher(listGrupo, unique('grupo'));
     }
@@ -655,6 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         aplicarBackup('list-colecao', backup.col, backup.colAll);
+        aplicarBackup('list-subcolecao', backup.subcol, backup.subcolAll);
         aplicarBackup('list-linha', backup.lin, backup.linAll);
         aplicarBackup('list-grupo', backup.gru, backup.gruAll);
     }
@@ -692,6 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         let tempBackup = { 
             col: getChecked('list-colecao'), colAll: document.querySelector('#list-colecao .select-all').checked,
+            subcol: getChecked('list-subcolecao'), subcolAll: document.querySelector('#list-subcolecao .select-all').checked,
             lin: getChecked('list-linha'), linAll: document.querySelector('#list-linha .select-all').checked,
             gru: getChecked('list-grupo'), gruAll: document.querySelector('#list-grupo .select-all').checked 
         };

@@ -26,7 +26,9 @@ try {
         GROUP BY p.linha, p.grupo
     )
     SELECT 
-        p.*, 
+        p.referencia, p.descricao, p.colecao, p.linha, p.grupo, p.classificacao, 
+        p."sub-colecao" AS subcolecao, /* Mapeia a coluna do BD (com hifen) para o JS (sem hifen) */
+        
         pp."precoB2B",
         pp."precoB2C",
         pp."MkpB2B",

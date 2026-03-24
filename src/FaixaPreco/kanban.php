@@ -41,14 +41,14 @@ require_once __DIR__ . '/../../db.php';
         .header {
             background-color: var(--green-primary);
             color: var(--white);
-            padding: 10px 20px; 
-            display: flex; flex-wrap: wrap; gap: 15px; 
+            padding: 8px 15px; /* Ligeiramente reduzido para caber tudo */
+            display: flex; gap: 10px; 
             align-items: center; justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative; z-index: 100;
         }
 
-        .logo-header { height: 35px; object-fit: contain; margin-right: 10px; border-radius: 4px; }
+        .logo-header { height: 35px; object-fit: contain; border-radius: 4px; }
 
         .top-nav {
             background-color: var(--white); padding: 8px 20px; display: flex; gap: 8px;
@@ -64,28 +64,35 @@ require_once __DIR__ . '/../../db.php';
         .nav-tab:hover { background: var(--green-light); opacity: 1; }
         .nav-tab.active:hover { background: var(--green-primary); }
 
-        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-
-        #filter-plano {
-            padding: 6px 10px; border-radius: 4px; border: 1px solid var(--white);
-            background: var(--white); color: var(--green-primary);
-            font-weight: bold; cursor: pointer; font-size: 0.85em;
-        }
-
-        .multiselect-container { position: relative; display: inline-block; min-width: 160px; }
-        .select-box {
-            background-color: var(--white); color: var(--green-primary);
-            padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;
-            cursor: pointer; font-size: 0.85em; font-weight: bold;
-            display: flex; justify-content: space-between; align-items: center;
+        /* MAGICA DO LAYOUT: Força 1 linha no PC (nowrap) e encolhe os elementos flex-shrink */
+        .filters { 
+            display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; 
+            width: 100%; justify-content: flex-start; overflow-x: auto;
         }
         
-        .filter-subtitle { color: #888; font-size: 0.8em; font-weight: normal; margin-left: 4px; }
-        .select-box::after { content: '▼'; font-size: 0.7em; margin-left: 8px; color: #888; }
+        .filters::-webkit-scrollbar { height: 4px; }
+        .filters::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+
+        #filter-plano {
+            padding: 4px 8px; border-radius: 4px; border: 1px solid var(--white);
+            background: var(--white); color: var(--green-primary);
+            font-weight: bold; cursor: pointer; font-size: 0.8em; flex-shrink: 0;
+        }
+
+        .multiselect-container { position: relative; display: inline-block; flex: 1 1 auto; min-width: 110px; max-width: 160px; }
+        .select-box {
+            background-color: var(--white); color: var(--green-primary);
+            padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc;
+            cursor: pointer; font-size: 0.75em; font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center; white-space: nowrap;
+        }
+        
+        .filter-subtitle { color: #888; font-size: 0.85em; font-weight: normal; margin-left: 2px; }
+        .select-box::after { content: '▼'; font-size: 0.6em; margin-left: 4px; color: #888; }
         
         .checkboxes-list {
             display: none; position: absolute; background-color: var(--white);
-            border: 1px solid #ccc; width: 100%; max-height: 250px;
+            border: 1px solid #ccc; width: 100%; min-width: 180px; max-height: 250px;
             overflow-y: auto; z-index: 1001; box-shadow: 0 5px 15px rgba(0,0,0,0.2); padding: 5px 0;
             border-radius: 4px;
         }
@@ -96,21 +103,23 @@ require_once __DIR__ . '/../../db.php';
 
         .global-indicator {
             background-color: var(--white); color: var(--green-primary);
-            padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em;
-            border: 2px solid var(--green-medium); white-space: nowrap;
+            padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em;
+            border: 2px solid var(--green-medium); white-space: nowrap; flex-shrink: 0;
         }
 
+        .btn-group-desktop { display: flex; gap: 8px; flex-shrink: 0;}
+        
         .btn-custom {
             background-color: var(--green-medium); color: var(--white);
-            border: 1px solid var(--white); padding: 6px 12px;
-            cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 0.85em;
+            border: 1px solid var(--white); padding: 4px 10px;
+            cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 0.75em; white-space: nowrap;
         }
         .btn-custom:hover { background-color: var(--white); color: var(--green-medium); border-color: var(--green-medium); }
 
         #btn-limpar-filtros {
             background: none; border: none; color: var(--green-light);
-            text-decoration: underline; cursor: pointer; font-size: 0.8em;
-            padding: 5px; opacity: 0.8; white-space: nowrap;
+            text-decoration: underline; cursor: pointer; font-size: 0.75em;
+            padding: 4px; opacity: 0.8; white-space: nowrap; flex-shrink: 0;
         }
         #btn-limpar-filtros:hover { opacity: 1; color: var(--white); }
 
@@ -203,12 +212,13 @@ require_once __DIR__ . '/../../db.php';
         /* === MEDIA QUERIES PARA MOBILE === */
         @media (max-width: 991px) {
             body { overflow-y: auto; } 
-            .header { flex-direction: column; align-items: stretch; }
-            .filters { flex-direction: column; align-items: stretch; width: 100%; } 
-            .multiselect-container { max-width: 100%; width: 100%; }
+            .header { flex-direction: column; align-items: stretch; padding: 15px; }
+            .filters { flex-direction: column; align-items: stretch; width: 100%; flex-wrap: wrap; } 
+            .multiselect-container { max-width: 100%; width: 100%; flex: 1 1 100%; }
+            .logo-header { margin: 0 auto 10px auto; display: block; }
             .global-indicator { margin-left: 0; text-align: center; margin-top: 10px; }
-            .btn-group-mobile { display: flex; gap: 10px; width: 100%; }
-            .btn-group-mobile .btn-custom { flex: 1; }
+            .btn-group-desktop { flex-direction: column; width: 100%; }
+            .btn-group-desktop .btn-custom { width: 100%; }
             
             #piramide-view { height: auto; margin-bottom: 40px; } 
             .piramide-right-col { border-left: none !important; padding-left: 0 !important; border-top: 2px solid #eee; padding-top: 20px; margin-top: 20px; }
@@ -238,9 +248,16 @@ require_once __DIR__ . '/../../db.php';
 
             <div class="multiselect-container">
                 <div class="select-box" onclick="toggleDropdown('list-colecao')">
-                    <div>COLEÇÕES <span class="filter-subtitle" id="sub-colecao"></span></div>
+                    <div>COLEÇÃO <span class="filter-subtitle" id="sub-colecao-main"></span></div>
                 </div>
                 <div class="checkboxes-list" id="list-colecao"></div>
+            </div>
+
+            <div class="multiselect-container">
+                <div class="select-box" onclick="toggleDropdown('list-subcolecao')">
+                    <div>SUB.COL <span class="filter-subtitle" id="sub-subcolecao"></span></div>
+                </div>
+                <div class="checkboxes-list" id="list-subcolecao"></div>
             </div>
 
             <div class="multiselect-container">
@@ -257,12 +274,11 @@ require_once __DIR__ . '/../../db.php';
                 <div class="checkboxes-list" id="list-grupo"></div>
             </div>
 
-            <div class="btn-group-mobile">
+            <div class="btn-group-desktop">
                 <button class="btn-custom" id="btn-config">Faixas</button>
-                <button class="btn-custom" id="btn-resumo">Resumo Mix</button> 
+                <button class="btn-custom" id="btn-resumo">Mix</button> 
+                <button id="btn-limpar-filtros" title="Limpar todos os filtros">Limpar</button>
             </div>
-
-            <button id="btn-limpar-filtros" title="Limpar todos os filtros">Limpar Filtros</button>
         </div>
         <div class="global-indicator mt-2 mt-lg-0">Mix Total: <span id="total-mix">0</span></div>
     </div>
@@ -308,7 +324,7 @@ require_once __DIR__ . '/../../db.php';
     </div>
 
     <div class="container-fluid py-3" id="piramide-view" style="display: none;">
-        <div class="row w-100 m-0 bg-white border rounded shadow-sm p-3">
+        <div class="row w-100 m-0 bg-white border rounded shadow-sm p-3" style="height: 100%;">
             
             <div class="col-12 col-lg-7 d-flex flex-column mb-4 mb-lg-0" style="height: 100%;">
                 <div class="chart-controls">
