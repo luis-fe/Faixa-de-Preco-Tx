@@ -171,12 +171,12 @@ require_once __DIR__ . '/../../db.php';
         input:checked ~ .toggle-text.b2c { color: var(--purple-b2c); }
         .chart-canvas-wrapper { width: 100%; min-height: 250px; flex-grow: 1; position: relative; }
 
-        /* Tabela Lateral */
+        /* Tabela Lateral (Drill-down Style) */
         .piramide-right-col { display: flex; flex-direction: column; height: 100%; }
         #side-summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 0;}
         #side-summary-table th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; color: #444; z-index: 2;}
         #side-summary-table td { padding: 6px 8px; border-bottom: 1px solid #eee; }
-        #side-summary-table tbody tr { cursor: pointer; transition: 0.2s; }
+        #side-summary-table tbody tr { transition: 0.2s; }
         #side-summary-table tbody tr:hover { background-color: #f1f8e9; }
         #side-summary-table tbody tr.dimmed { opacity: 0.35; }
         #side-summary-table tbody tr.selected { background-color: var(--green-light); border-left: 4px solid var(--green-primary); }
@@ -328,11 +328,11 @@ require_once __DIR__ . '/../../db.php';
             </div>
 
             <div class="col-12 col-lg-5 piramide-right-col">
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                     
                     <div style="display: flex; align-items: center; gap: 5px;">
-                        <label style="font-size: 0.75em; font-weight: bold; color: var(--green-primary); margin-bottom: 0;">GÊNERO:</label>
-                        <select id="filtro-tabela-genero" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold" style="width: auto; font-size: 0.8em; padding: 2px 24px 2px 8px;">
+                        <label style="font-size: 0.8em; font-weight: bold; color: var(--green-primary); margin-bottom: 0;">GÊNERO GLOBAL:</label>
+                        <select id="filtro-tabela-genero" class="form-select form-select-sm shadow-none border-secondary text-dark fw-bold" style="width: auto; font-size: 0.85em;">
                             <option value="TODOS" selected>TODOS</option>
                             <option value="Masculino">Masculino</option>
                             <option value="Feminino">Feminino</option>
@@ -341,21 +341,7 @@ require_once __DIR__ . '/../../db.php';
                         </select>
                     </div>
 
-                    <div class="multiselect-container" style="min-width: 110px; flex-grow: 0;">
-                        <div class="select-box" onclick="toggleDropdown('list-piramide-grupo')" style="padding: 2px 8px; font-size: 0.8em;">
-                            <div>GRUPO <span class="filter-subtitle" id="sub-piramide-grupo">(Nenhum)</span></div>
-                        </div>
-                        <div class="checkboxes-list" id="list-piramide-grupo" style="width: 250px; right: 0;"></div>
-                    </div>
-
-                    <div class="multiselect-container" style="min-width: 110px; flex-grow: 0;">
-                        <div class="select-box" onclick="toggleDropdown('list-piramide-linha')" style="padding: 2px 8px; font-size: 0.8em;">
-                            <div>LINHA <span class="filter-subtitle" id="sub-piramide-linha">(Nenhum)</span></div>
-                        </div>
-                        <div class="checkboxes-list" id="list-piramide-linha" style="width: 250px; right: 0;"></div>
-                    </div>
-
-                    <button id="btn-limpar-piramide-filtros" class="btn btn-sm btn-link text-decoration-none text-danger fw-bold" style="font-size: 0.75em; padding: 0;">Limpar</button>
+                    <button id="btn-limpar-piramide-filtros" class="btn btn-sm btn-link text-decoration-none text-danger fw-bold" style="font-size: 0.8em; padding: 0;">Limpar Expansão</button>
 
                 </div>
                 <div style="overflow-y: auto; flex-grow: 1;">

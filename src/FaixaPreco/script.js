@@ -10,7 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let backupFiltros = null;
     let chartInstance = null; 
     
-    let selecaoPiramide = null; // { genero, grupo, linha }
+    // VARIÁVEIS DA TABELA PIRÂMIDE (TREE-GRID)
+    let expandedCamadas = new Set(); // Guarda os IDs dos níveis abertos ("GEN|Masculino", "GRU|Masculino|Camisetas")
+    let selecaoPiramide = null; // { genero, grupo, linha } para o filtro visual
 
     let currentSyncTime = '--:--';
     let pollingInterval = null;
@@ -58,150 +60,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleTipoPreco.addEventListener('change', () => { atualizarKanban(); });
 
-    // =========================================================================
-    // FUNÇÕES DE SINCRONIZAÇÃO BIDIRECIONAL (CABEÇALHO <-> PIRÂMIDE)
-    // =========================================================================
-
-    function syncGlobalToPiramide(globalId) {
-        const type = globalId === 'list-grupo' ? 'grupo' : 'linha';
-        const pId = `list-piramide-${type}`;
-        const piramideChecks = document.querySelectorAll(`#${pId} .item-checkbox-piramide-${type}`);
-        
-        piramideChecks.forEach(pChk => {
-            const gChk = document.querySelector(`#${globalId} input.item-checkbox[value="${pChk.value}"]`);
-            if (gChk) pChk.checked = gChk.checked;
-        });
-        
-        const pAll = document.querySelector(`#${pId} .select-all-piramide-${type}`);
-        if (pAll && piramideChecks.length > 0) {
-            pAll.checked = Array.from(piramideChecks).every(c => c.checked);
-        }
-
-        // Se o grupo mudou pelo cabeçalho, recarrega as linhas na pirâmide
-        if (type === 'grupo') popularFiltroPiramideLinha(); 
-    }
-
-    function syncPiramideToGlobal(type) {
-        const globalId = type === 'grupo' ? 'list-grupo' : 'list-linha';
-        const pId = `list-piramide-${type}`;
-        
-        const piramideChecks = document.querySelectorAll(`#${pId} .item-checkbox-piramide-${type}`);
-        piramideChecks.forEach(pChk => {
-            const gChk = document.querySelector(`#${globalId} input.item-checkbox[value="${pChk.value}"]`);
-            if (gChk) gChk.checked = pChk.checked;
-        });
-        
-        // Atualiza a opção "Selecionar Tudo" do Cabeçalho Global
-        const globalContainer = document.getElementById(globalId);
-        const gAll = globalContainer.querySelector('.select-all');
-        const gItems = globalContainer.querySelectorAll('.item-checkbox');
-        const visiveis = Array.from(gItems).filter(c => c.closest('label').style.display !== 'none');
-        if (visiveis.length > 0) gAll.checked = visiveis.every(c => c.checked);
-    }
-
-    // =========================================================================
-    // POPULAR DROPDOWNS DA PIRÂMIDE
-    // =========================================================================
-
-    function popularFiltroPiramideGrupo() {
-        const genSel = filtroTabelaGenero.value;
-        let produtosParaGrupos = produtosBase;
-        
-        if (genSel !== 'TODOS') produtosParaGrupos = produtosBase.filter(p => p.genero === genSel);
-        let gruposDisponiveis = [...new Set(produtosParaGrupos.map(p => p.grupo))].sort();
-
-        const container = document.getElementById('list-piramide-grupo');
-        container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 6px; color: var(--green-primary); font-weight: bold;">
-            <input type="checkbox" class="select-all-piramide-grupo"> Selecionar Tudo</label>` +
-            gruposDisponiveis.map(val => {
-                const globalChk = document.querySelector(`#list-grupo input.item-checkbox[value="${val}"]`);
-                const isChecked = globalChk ? globalChk.checked : true;
-                return `<label><input type="checkbox" class="item-checkbox-piramide-grupo" value="${val}" ${isChecked ? 'checked' : ''}> ${val}</label>`;
-            }).join('');
-
-        const chkAll = container.querySelector('.select-all-piramide-grupo');
-        const chkItems = container.querySelectorAll('.item-checkbox-piramide-grupo');
-
-        if(chkItems.length > 0) chkAll.checked = Array.from(chkItems).every(c => c.checked);
-
-        chkAll.addEventListener('change', (e) => {
-            chkItems.forEach(chk => chk.checked = e.target.checked);
-            syncPiramideToGlobal('grupo');
-            popularFiltroPiramideLinha(); 
-            atualizarKanban();
-        });
-
-        chkItems.forEach(chk => chk.addEventListener('change', () => {
-            chkAll.checked = Array.from(chkItems).every(c => c.checked);
-            syncPiramideToGlobal('grupo');
-            popularFiltroPiramideLinha(); 
-            atualizarKanban();
-        }));
-
-        popularFiltroPiramideLinha(); 
-    }
-
-    function popularFiltroPiramideLinha() {
-        const genSel = filtroTabelaGenero.value;
-        // Pega os grupos que estão marcados para cruzar com o Gênero
-        const chkGrupos = Array.from(document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide-grupo:checked')).map(c => c.value);
-        
-        let produtosParaLinhas = produtosBase;
-        if (genSel !== 'TODOS') produtosParaLinhas = produtosParaLinhas.filter(p => p.genero === genSel);
-        if (chkGrupos.length > 0) produtosParaLinhas = produtosParaLinhas.filter(p => chkGrupos.includes(p.grupo));
-        
-        let linhasDisponiveis = [...new Set(produtosParaLinhas.map(p => p.linha))].sort();
-
-        const container = document.getElementById('list-piramide-linha');
-        container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 6px; color: var(--green-primary); font-weight: bold;">
-            <input type="checkbox" class="select-all-piramide-linha"> Selecionar Tudo</label>` +
-            linhasDisponiveis.map(val => {
-                const globalChk = document.querySelector(`#list-linha input.item-checkbox[value="${val}"]`);
-                const isChecked = globalChk ? globalChk.checked : true;
-                return `<label><input type="checkbox" class="item-checkbox-piramide-linha" value="${val}" ${isChecked ? 'checked' : ''}> ${val}</label>`;
-            }).join('');
-
-        const chkAll = container.querySelector('.select-all-piramide-linha');
-        const chkItems = container.querySelectorAll('.item-checkbox-piramide-linha');
-
-        if(chkItems.length > 0) chkAll.checked = Array.from(chkItems).every(c => c.checked);
-
-        chkAll.addEventListener('change', (e) => {
-            chkItems.forEach(chk => chk.checked = e.target.checked);
-            syncPiramideToGlobal('linha');
-            atualizarKanban();
-        });
-
-        chkItems.forEach(chk => chk.addEventListener('change', () => {
-            chkAll.checked = Array.from(chkItems).every(c => c.checked);
-            syncPiramideToGlobal('linha');
-            atualizarKanban();
-        }));
-    }
-
+    // --- CONTROLES DE LIMPEZA DA PIRÂMIDE ---
     filtroTabelaGenero.addEventListener('change', () => {
         selecaoPiramide = null; 
-        popularFiltroPiramideGrupo(); 
+        expandedCamadas.clear(); // Fecha todas as abas ao mudar de gênero geral
         atualizarKanban();
     });
 
     btnLimparPiramideFiltros.addEventListener('click', () => {
         filtroTabelaGenero.value = 'TODOS';
         selecaoPiramide = null;
-        
-        // Marca todas as caixas no Global
-        const checkAll = (containerId) => {
-            const container = document.getElementById(containerId);
-            const chkAll = container.querySelector('.select-all');
-            const items = container.querySelectorAll('.item-checkbox');
-            if(chkAll) chkAll.checked = true;
-            items.forEach(c => c.checked = true);
-        };
-        
-        checkAll('list-grupo');
-        checkAll('list-linha');
-        
-        popularFiltroPiramideGrupo(); // Recria as listas baseadas no global limpo
+        expandedCamadas.clear();
         atualizarKanban();
     });
 
@@ -212,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pollingInterval) clearInterval(pollingInterval);
         lblLastSync.innerText = "Carregando...";
         selecaoPiramide = null; 
+        expandedCamadas.clear();
 
         fetch(`buscar_produtos.php?plano=${encodeURIComponent(plano)}&_=${Date.now()}`)
             .then(res => res.json())
@@ -250,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 popularGrupoModal();
-                popularFiltroPiramideGrupo(); 
                 atualizarKanban();
                 iniciarPolling(plano);
             });
@@ -289,19 +158,46 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(err => console.error("Erro ao checar sync", err));
     }
 
-    window.toggleSelecaoPiramide = (genero, grupo, linha) => {
-        if (selecaoPiramide && selecaoPiramide.genero === genero && selecaoPiramide.grupo === grupo && selecaoPiramide.linha === linha) {
-            selecaoPiramide = null; 
-        } else {
-            selecaoPiramide = { genero, grupo, linha }; 
+    // --- NOVA LÓGICA DE ABERTURA EM CAMADAS (DRILL-DOWN) E SELEÇÃO ---
+    window.toggleCamada = (nivel, genero, grupo, linha) => {
+        const genId = `GEN|${genero}`;
+        const gruId = `GRU|${genero}|${grupo}`;
+
+        if (nivel === 'GEN') {
+            if (expandedCamadas.has(genId)) {
+                expandedCamadas.delete(genId); // Fecha a camada
+                selecaoPiramide = null; // Limpa o filtro correspondente
+            } else {
+                expandedCamadas.add(genId); // Abre a camada
+                selecaoPiramide = { genero, grupo: null, linha: null }; // Seta o filtro pro Gráfico
+            }
+        } 
+        else if (nivel === 'GRU') {
+            if (expandedCamadas.has(gruId)) {
+                expandedCamadas.delete(gruId);
+                // Ao fechar um grupo, o filtro "sobe" pro nível do Gênero pai
+                selecaoPiramide = { genero, grupo: null, linha: null };
+            } else {
+                expandedCamadas.add(gruId);
+                selecaoPiramide = { genero, grupo, linha: null };
+            }
         }
+        else if (nivel === 'LIN') {
+            // Linha não expande, apenas seleciona
+            if (selecaoPiramide && selecaoPiramide.linha === linha) {
+                // Se clicar na mesma linha, deseleciona e "sobe" pro Grupo pai
+                selecaoPiramide = { genero, grupo, linha: null };
+            } else {
+                selecaoPiramide = { genero, grupo, linha };
+            }
+        }
+        
         atualizarKanban();
     };
 
     function atualizarKanban() {
         if (!selPlano.value) return; 
 
-        // 1. O Kanban e o Gráfico sempre olham primeiro pro Cabeçalho Global
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
         const fCol = getChecked('list-colecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
         const analisarB2C = toggleTipoPreco.checked;
@@ -314,36 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateVis = (id, vSet) => { document.getElementById(id).querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
         updateVis('list-colecao', validCol); updateVis('list-linha', validLin); updateVis('list-grupo', validGru);
 
-        // Base de dados restrita pelo Cabeçalho
+        // Base filtrada apenas pelo cabeçalho Global
         let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
-        // 2. Filtro Local: Gênero
+        // Aplica o filtro da caixa de Gênero Global da Pirâmide
         const genSel = filtroTabelaGenero.value;
         let filtradosTabela = filtradosGerais;
         if (genSel !== 'TODOS') filtradosTabela = filtradosTabela.filter(p => p.genero === genSel);
 
-        // 3. Atualiza Subtítulos Dinâmicos (Para Grupo e Linha da Pirâmide)
-        const setPiramideSub = (type) => {
-            const pId = `list-piramide-${type}`;
-            const subId = `sub-piramide-${type}`;
-            const chkItems = document.querySelectorAll(`#${pId} .item-checkbox-piramide-${type}`);
-            const chkChecked = document.querySelectorAll(`#${pId} .item-checkbox-piramide-${type}:checked`);
-            
-            if (chkChecked.length === 0) document.getElementById(subId).innerText = '(Nenhum)';
-            else if (chkChecked.length === chkItems.length) document.getElementById(subId).innerText = '(Todos)';
-            else if (chkChecked.length === 1) document.getElementById(subId).innerText = `(${chkChecked[0].value})`;
-            else document.getElementById(subId).innerText = '(...)';
-        };
-        setPiramideSub('grupo');
-        setPiramideSub('linha');
-
+        // Atualiza a montagem dinâmica da tabela em formato de árvore
         atualizarTabelaLateral(filtradosTabela);
 
-        // 4. Filtragem para Visualização (Card e Gráfico isolando item selecionado na tabela)
+        // --- FILTRAGEM PARA O GRÁFICO E KANBAN ---
         let filtradosParaVisuais = filtradosTabela;
         
         if (selecaoPiramide) {
-            filtradosParaVisuais = filtradosParaVisuais.filter(p => p.genero === selecaoPiramide.genero && p.grupo === selecaoPiramide.grupo && p.linha === selecaoPiramide.linha);
+            filtradosParaVisuais = filtradosParaVisuais.filter(p => p.genero === selecaoPiramide.genero);
+            if (selecaoPiramide.grupo) filtradosParaVisuais = filtradosParaVisuais.filter(p => p.grupo === selecaoPiramide.grupo);
+            if (selecaoPiramide.linha) filtradosParaVisuais = filtradosParaVisuais.filter(p => p.linha === selecaoPiramide.linha);
         }
 
         const setSub = (id, arr) => {
@@ -352,8 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (selecaoPiramide) {
-            setSub('sub-grupo', [selecaoPiramide.grupo]);
-            setSub('sub-linha', [selecaoPiramide.linha]);
+            setSub('sub-grupo', selecaoPiramide.grupo ? [selecaoPiramide.grupo] : effGru);
+            setSub('sub-linha', selecaoPiramide.linha ? [selecaoPiramide.linha] : effLin);
             setSub('sub-colecao', [...new Set(filtradosParaVisuais.map(p => p.colecao))]);
         } else {
             setSub('sub-linha', effLin); setSub('sub-grupo', effGru); setSub('sub-colecao', effCol);
@@ -413,51 +297,91 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none'; }
     }
 
+    // --- CONSTRUÇÃO DA TABELA HIERÁRQUICA COM INDENTAÇÃO (ACCORDION) ---
     function atualizarTabelaLateral(filtradosTabela) {
         const tbody = document.querySelector('#side-summary-table tbody');
         const thead = document.querySelector('#side-summary-table thead');
         
-        let totalGeralTabela = 0;
-        const mapa = {};
+        let totalGeralTabela = filtradosTabela.length;
+        const hierarquia = {};
 
+        // Monta o objeto em árvore
         filtradosTabela.forEach(p => {
-            let key = p.genero + '|' + p.grupo + '|' + p.linha;
-            if (!mapa[key]) mapa[key] = { genero: p.genero, grupo: p.grupo, linha: p.linha, total: 0 };
-            mapa[key].total++;
-            totalGeralTabela++;
+            if (!hierarquia[p.genero]) hierarquia[p.genero] = { total: 0, grupos: {} };
+            hierarquia[p.genero].total++;
+
+            if (!hierarquia[p.genero].grupos[p.grupo]) hierarquia[p.genero].grupos[p.grupo] = { total: 0, linhas: {} };
+            hierarquia[p.genero].grupos[p.grupo].total++;
+
+            if (!hierarquia[p.genero].grupos[p.grupo].linhas[p.linha]) hierarquia[p.genero].grupos[p.grupo].linhas[p.linha] = { total: 0 };
+            hierarquia[p.genero].grupos[p.grupo].linhas[p.linha].total++;
         });
 
-        thead.innerHTML = `<tr><th>Gênero</th><th>Grupo</th><th>Linha</th><th style="text-align: center;">Total</th><th style="text-align: center;">Mix %</th></tr>`;
+        // Tabela centralizada com 1 coluna nome (que usa indentação) + 2 de dados
+        thead.innerHTML = `<tr><th>Classificação do Mix</th><th style="text-align: center;">Total</th><th style="text-align: center;">Mix %</th></tr>`;
 
-        const arrayResumo = Object.values(mapa);
-        
-        arrayResumo.sort((a, b) => a.genero.localeCompare(b.genero) || a.grupo.localeCompare(b.grupo) || a.linha.localeCompare(b.linha));
+        let html = '';
 
-        tbody.innerHTML = arrayResumo.map(item => {
-            let classeCSS = '';
+        Object.keys(hierarquia).sort().forEach(gen => {
+            const genData = hierarquia[gen];
+            const percGen = totalGeralTabela > 0 ? Math.round((genData.total / totalGeralTabela) * 100) : 0;
+            const genId = `GEN|${gen}`;
+            const isExpandedGen = expandedCamadas.has(genId);
+            const isSelectedGen = (selecaoPiramide && selecaoPiramide.genero === gen && !selecaoPiramide.grupo);
             
-            if (selecaoPiramide) {
-                const matchGen = selecaoPiramide.genero === item.genero;
-                const matchGru = selecaoPiramide.grupo === item.grupo;
-                const matchLin = selecaoPiramide.linha === item.linha;
-                if (matchGen && matchGru && matchLin) classeCSS = 'selected'; else classeCSS = 'dimmed';
-            }
-
-            let percentual = totalGeralTabela > 0 ? Math.round((item.total / totalGeralTabela) * 100) : 0;
+            // Ícone dinâmico
+            const iconGen = Object.keys(genData.grupos).length > 0 ? (isExpandedGen ? '▼' : '▶') : '•';
             
-            const escGen = item.genero.replace(/'/g, "\\'");
-            const escGru = item.grupo.replace(/'/g, "\\'"); 
-            const escLin = item.linha.replace(/'/g, "\\'"); 
+            const escGen = gen.replace(/'/g, "\\'");
 
-            return `
-            <tr class="${classeCSS}" onclick="toggleSelecaoPiramide('${escGen}', '${escGru}', '${escLin}')">
-                <td>${item.genero}</td>
-                <td>${item.grupo}</td>
-                <td><strong>${item.linha}</strong></td>
-                <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
-                <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percentual}%</td>
+            // 1º NÍVEL (GÊNERO)
+            html += `
+            <tr class="${isSelectedGen ? 'selected' : (selecaoPiramide ? 'dimmed' : '')}" onclick="toggleCamada('GEN', '${escGen}', null, null)">
+                <td style="font-weight: bold; cursor: pointer; color: var(--green-primary);">${iconGen} ${gen}</td>
+                <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${genData.total}</td>
+                <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percGen}%</td>
             </tr>`;
-        }).join('');
+
+            if (isExpandedGen) {
+                Object.keys(genData.grupos).sort().forEach(gru => {
+                    const gruData = genData.grupos[gru];
+                    const percGru = totalGeralTabela > 0 ? Math.round((gruData.total / totalGeralTabela) * 100) : 0;
+                    const gruId = `GRU|${gen}|${gru}`;
+                    const isExpandedGru = expandedCamadas.has(gruId);
+                    const isSelectedGru = (selecaoPiramide && selecaoPiramide.genero === gen && selecaoPiramide.grupo === gru && !selecaoPiramide.linha);
+                    
+                    const iconGru = Object.keys(gruData.linhas).length > 0 ? (isExpandedGru ? '▼' : '▶') : '•';
+                    const escGru = gru.replace(/'/g, "\\'");
+
+                    // 2º NÍVEL (GRUPO) - Indentado
+                    html += `
+                    <tr class="${isSelectedGru ? 'selected' : (selecaoPiramide ? 'dimmed' : '')}" onclick="toggleCamada('GRU', '${escGen}', '${escGru}', null)">
+                        <td style="padding-left: 20px; font-weight: bold; cursor: pointer; color: #444;">${iconGru} ${gru}</td>
+                        <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${gruData.total}</td>
+                        <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percGru}%</td>
+                    </tr>`;
+
+                    if (isExpandedGru) {
+                        Object.keys(gruData.linhas).sort().forEach(lin => {
+                            const linTotal = gruData.linhas[lin].total;
+                            const percLin = totalGeralTabela > 0 ? Math.round((linTotal / totalGeralTabela) * 100) : 0;
+                            const isSelectedLin = (selecaoPiramide && selecaoPiramide.genero === gen && selecaoPiramide.grupo === gru && selecaoPiramide.linha === lin);
+                            const escLin = lin.replace(/'/g, "\\'");
+
+                            // 3º NÍVEL (LINHA) - Mais Indentado
+                            html += `
+                            <tr class="${isSelectedLin ? 'selected' : (selecaoPiramide ? 'dimmed' : '')}" onclick="toggleCamada('LIN', '${escGen}', '${escGru}', '${escLin}')">
+                                <td style="padding-left: 40px; cursor: pointer; color: #666;">• ${lin}</td>
+                                <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${linTotal}</td>
+                                <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percLin}%</td>
+                            </tr>`;
+                        });
+                    }
+                });
+            }
+        });
+
+        tbody.innerHTML = html;
     }
 
     function renderizarGraficoPiramide(filtradosParaVisuais, analisarB2C, isFiltered) {
@@ -677,20 +601,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             chkAll.addEventListener('change', (e) => {
                 chkItems.forEach(chk => chk.checked = e.target.checked);
-                // SINCRONIZA COM A PIRÂMIDE QUANDO MUDA GLOBAL
-                if (container.id === 'list-grupo' || container.id === 'list-linha') {
-                    syncGlobalToPiramide(container.id);
-                }
                 atualizarKanban();
             });
 
             chkItems.forEach(chk => chk.addEventListener('change', () => {
                 const visiveis = Array.from(chkItems).filter(c => c.closest('label').style.display !== 'none');
                 chkAll.checked = visiveis.every(c => c.checked);
-                // SINCRONIZA COM A PIRÂMIDE QUANDO MUDA GLOBAL
-                if (container.id === 'list-grupo' || container.id === 'list-linha') {
-                    syncGlobalToPiramide(container.id);
-                }
                 atualizarKanban();
             }));
         };
@@ -776,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
         
         filtroTabelaGenero.value = 'TODOS';
-        popularFiltroPiramideGrupo(); 
+        expandedCamadas.clear();
         selecaoPiramide = null; 
         
         atualizarKanban();
@@ -799,5 +715,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.onclick = (e) => { if (e.target == modalConfig) modalConfig.style.display = 'none'; if (e.target == modalSummary) modalSummary.style.display = 'none'; };
     
-    function limparFiltros() { produtosBase = []; selecaoPiramide = null; atualizarKanban(); }
+    function limparFiltros() { produtosBase = []; selecaoPiramide = null; expandedCamadas.clear(); atualizarKanban(); }
 });
