@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ELEMENTOS DO CABEÇALHO
     const selPlano = document.getElementById('filter-plano');
     const listColecao = document.getElementById('list-colecao');
-    const listSubcolecao = document.getElementById('list-subcolecao'); // NOVO ELEMENTO
+    const listSubcolecao = document.getElementById('list-subcolecao');
     const listLinha = document.getElementById('list-linha');
     const listGrupo = document.getElementById('list-grupo');
     const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
@@ -102,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (['ACE FEM','CAL FEM', 'FEMININO'].includes(gUpper)) generoMap = 'Feminino';
                     else if (['INF BABY','INF MASC'].includes(gUpper)) generoMap = 'Infantil';
 
-                    // Lida com Subcoleção Nula/Vazia do Banco e atribui a string "NENHUMA" pra facilitar o checkbox
                     let subC = p.subcolecao || p.Subcolecao || p.SUBCOLECAO || '';
                     if(subC.trim() === '' || subC.trim() === '-') subC = 'NENHUMA';
 
@@ -202,12 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selPlano.value) return; 
 
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-        
-        // LEITURA DOS NOVOS FILTROS
         const fCol = getChecked('list-colecao'), fSubcol = getChecked('list-subcolecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
         const analisarB2C = toggleTipoPreco.checked;
 
-        // VALIDANDO AS RELAÇÕES
         const validCol = new Set(produtosBase.filter(p => fLin.includes(p.linha) && fGru.includes(p.grupo) && fSubcol.includes(p.subcolecao)).map(p => p.colecao));
         const validSubcol = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo)).map(p => p.subcolecao));
         const validLin = new Set(produtosBase.filter(p => fCol.includes(p.colecao) && fGru.includes(p.grupo) && fSubcol.includes(p.subcolecao)).map(p => p.linha));
@@ -218,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateVis = (id, vSet) => { document.getElementById(id).querySelectorAll('.item-checkbox').forEach(chk => { chk.closest('label').style.display = vSet.has(chk.value) ? 'block' : 'none'; }); };
         updateVis('list-colecao', validCol); updateVis('list-subcolecao', validSubcol); updateVis('list-linha', validLin); updateVis('list-grupo', validGru);
 
-        // Base filtrada cruzando TUDO, inclusive a nova Sub-Coleção
         let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fSubcol.includes(p.subcolecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
         const genSel = filtroTabelaGenero.value;
@@ -263,12 +258,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
             
-            // Tratamento visual para NENHUMA
-            let nomeTag = p.subcolecao === 'NENHUMA' ? '' : p.subcolecao;
+            // --- AQUI ESTÁ A MUDANÇA: Voltando a TAG para Coleção ---
+            let nomeTag = p.colecao; 
             let badgeHtml = '';
             
-            if (nomeTag !== '') {
-                let txtMinusculo = nomeTag.toLowerCase();
+            if (nomeTag && String(nomeTag).trim() !== '') {
+                let txtMinusculo = String(nomeTag).toLowerCase();
                 let corFundo = '#757575'; let corTexto = '#ffffff'; 
                 if (txtMinusculo.includes('starter') || txtMinusculo.includes('estoque futuro')) corFundo = '#9E9E9E'; 
                 else if (txtMinusculo.includes('lancamento') || txtMinusculo.includes('lançamento')) corFundo = '#FBC02D'; 
@@ -623,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }));
         };
         preencher(listColecao, unique('colecao')); 
-        preencher(listSubcolecao, unique('subcolecao')); // Gera os checks da Sub-coleção
+        preencher(listSubcolecao, unique('subcolecao')); 
         preencher(listLinha, unique('linha')); 
         preencher(listGrupo, unique('grupo'));
     }
