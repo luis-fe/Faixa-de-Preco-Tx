@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleTipoPreco.addEventListener('change', () => { atualizarKanban(); });
 
+    // --- CONTROLES DE LIMPEZA DA PIRÂMIDE ---
     filtroTabelaGenero.addEventListener('change', () => {
         selecaoPiramide = null; 
         expandedCamadas.clear(); 
@@ -162,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(err => console.error("Erro ao checar sync", err));
     }
 
+    // --- NOVA LÓGICA DE ABERTURA EM CAMADAS (DRILL-DOWN) E SELEÇÃO ---
     window.toggleCamada = (nivel, genero, grupo, linha) => {
         const genId = `GEN|${genero}`;
         const gruId = `GRU|${genero}|${grupo}`;
@@ -199,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selPlano.value) return; 
 
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
-        
         const fCol = getChecked('list-colecao'), fSubcol = getChecked('list-subcolecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
         const analisarB2C = toggleTipoPreco.checked;
 
@@ -257,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let b2cHtml = p.precoB2C > 0 ? `<span class="price-b2c">(B2C - R$ ${p.precoB2C.toFixed(2)})</span>` : '';
             let mkpHtml = p.mkp > 0 ? `<span class="markup">Mkp: ${p.mkp.toFixed(2)}</span>` : '';
             
+            // --- AQUI ESTÁ A MUDANÇA: Voltando a TAG para Coleção ---
             let nomeTag = p.colecao; 
             let badgeHtml = '';
             
@@ -407,20 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const labelsComSifrao = labelsOrdenadas.map(l => 'R$ ' + l.replace('.', ','));
 
         if (chartInstance) chartInstance.destroy();
-        
-        // --- MÁGICA DA ROLAGEM VERTICAL DO GRÁFICO ---
-        // Pega a div interna que criamos no HTML e obriga a ter 35px por cada barra renderizada
-        const innerWrapper = document.getElementById('chart-inner-wrapper');
-        const canvasWrapper = innerWrapper.parentElement;
-        const alturaMinimaCalculada = labelsOrdenadas.length * 35 + 80; 
-        
-        // Se a altura calculada for maior que o espaço da tela, ele ativa o Scroll (overflow-y já está no CSS)
-        if (canvasWrapper.clientHeight > 0 && canvasWrapper.clientHeight < alturaMinimaCalculada) {
-            innerWrapper.style.height = alturaMinimaCalculada + 'px';
-        } else {
-            innerWrapper.style.height = '100%';
-        }
-
         if (labelsOrdenadas.length === 0) {
             ctx.font = "16px sans-serif"; ctx.fillStyle = "#888"; ctx.textAlign = "center";
             ctx.fillText("Nenhum dado selecionado", ctx.canvas.width/2, ctx.canvas.height/2);
@@ -440,14 +428,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: { display: true, text: tituloGrafico, color: '#25382D', font: { size: 15, weight: 'bold', family: 'Segoe UI' }, padding: { bottom: 15 } },
                     legend: { display: false },
                     datalabels: {
-                        display: true, 
-                        color: isFiltered ? '#fff' : '#444', 
+                        display: true, color: isFiltered ? '#fff' : '#444', 
                         backgroundColor: isFiltered ? (analisarB2C ? '#673AB7' : '#25382D') : null, 
-                        borderRadius: 4, padding: isFiltered ? 4 : 0, 
-                        anchor: isFiltered ? 'center' : 'end', 
-                        align: isFiltered ? 'center' : 'right',  
-                        font: { weight: 'bold', size: isFiltered ? 12 : 11, family: 'Segoe UI' }, 
-                        formatter: function(value) { return value; }
+                        borderRadius: 4, padding: isFiltered ? 4 : 0, anchor: isFiltered ? 'center' : 'end', align: isFiltered ? 'center' : 'right',  
+                        font: { weight: 'bold', size: isFiltered ? 12 : 11, family: 'Segoe UI' }, formatter: function(value) { return value; }
                     },
                     tooltip: {
                         backgroundColor: analisarB2C ? '#673AB7' : '#25382D', titleFont: { size: 13, weight: 'bold' }, bodyFont: { size: 12 },
