@@ -298,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- CONSTRUÇÃO DA TABELA HIERÁRQUICA COM INDENTAÇÃO (ACCORDION) ---
+// --- CONSTRUÇÃO DA TABELA HIERÁRQUICA COM INDENTAÇÃO E % NO NÍVEL ---
     function atualizarTabelaLateral(filtradosTabela) {
         const tbody = document.querySelector('#side-summary-table tbody');
         const thead = document.querySelector('#side-summary-table thead');
@@ -317,26 +318,31 @@ document.addEventListener('DOMContentLoaded', () => {
             hierarquia[p.genero].grupos[p.grupo].linhas[p.linha].total++;
         });
 
-        // Tabela centralizada com 1 coluna nome (que usa indentação) + 2 de dados
         thead.innerHTML = `<tr><th>Classificação do Mix</th><th style="text-align: center;">Total</th><th style="text-align: center;">Mix %</th></tr>`;
 
         let html = '';
 
         Object.keys(hierarquia).sort().forEach(gen => {
             const genData = hierarquia[gen];
+            
+            // CÁLCULO %: Nível 1 (% sobre o Total Geral)
             const percGen = totalGeralTabela > 0 ? Math.round((genData.total / totalGeralTabela) * 100) : 0;
+            
             const genId = `GEN|${gen}`;
             const isExpandedGen = expandedCamadas.has(genId);
-            const isSelectedGen = (selecaoPiramide && selecaoPiramide.genero === gen && !selecaoPiramide.grupo);
             
-            // Ícone dinâmico
+            // LÓGICA DE DESTAQUE (Highlight vs Dimmed)
+            const matchGen = (selecaoPiramide && selecaoPiramide.genero === gen);
+            const exactGen = matchGen && !selecaoPiramide.grupo;
+            const dimmedGen = selecaoPiramide && !matchGen;
+            const classGen = exactGen ? 'selected' : (dimmedGen ? 'dimmed' : '');
+            
             const iconGen = Object.keys(genData.grupos).length > 0 ? (isExpandedGen ? '▼' : '▶') : '•';
-            
             const escGen = gen.replace(/'/g, "\\'");
 
-            // 1º NÍVEL (GÊNERO)
+            // HTML: 1º NÍVEL (GÊNERO)
             html += `
-            <tr class="${isSelectedGen ? 'selected' : (selecaoPiramide ? 'dimmed' : '')}" onclick="toggleCamada('GEN', '${escGen}', null, null)">
+            <tr class="${classGen}" onclick="toggleCamada('GEN', '${escGen}', null, null)">
                 <td style="font-weight: bold; cursor: pointer; color: var(--green-primary);">${iconGen} ${gen}</td>
                 <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${genData.total}</td>
                 <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percGen}%</td>
@@ -345,17 +351,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isExpandedGen) {
                 Object.keys(genData.grupos).sort().forEach(gru => {
                     const gruData = genData.grupos[gru];
-                    const percGru = totalGeralTabela > 0 ? Math.round((gruData.total / totalGeralTabela) * 100) : 0;
+                    
+                    // CÁLCULO %: Nível 2 (% sobre o Total do Gênero Pai)
+                    const percGru = genData.total > 0 ? Math.round((gruData.total / genData.total) * 100) : 0;
+                    
                     const gruId = `GRU|${gen}|${gru}`;
                     const isExpandedGru = expandedCamadas.has(gruId);
-                    const isSelectedGru = (selecaoPiramide && selecaoPiramide.genero === gen && selecaoPiramide.grupo === gru && !selecaoPiramide.linha);
                     
+                    // LÓGICA DE DESTAQUE
+                    const matchGru = matchGen && (!selecaoPiramide.grupo || selecaoPiramide.grupo === gru);
+                    const exactGru = matchGen && selecaoPiramide.grupo === gru && !selecaoPiramide.linha;
+                    const dimmedGru = selecaoPiramide && !matchGru;
+                    const classGru = exactGru ? 'selected' : (dimmedGru ? 'dimmed' : '');
+
                     const iconGru = Object.keys(gruData.linhas).length > 0 ? (isExpandedGru ? '▼' : '▶') : '•';
                     const escGru = gru.replace(/'/g, "\\'");
 
-                    // 2º NÍVEL (GRUPO) - Indentado
+                    // HTML: 2º NÍVEL (GRUPO)
                     html += `
-                    <tr class="${isSelectedGru ? 'selected' : (selecaoPiramide ? 'dimmed' : '')}" onclick="toggleCamada('GRU', '${escGen}', '${escGru}', null)">
+                    <tr class="${classGru}" onclick="toggleCamada('GRU', '${escGen}', '${escGru}', null)">
                         <td style="padding-left: 20px; font-weight: bold; cursor: pointer; color: #444;">${iconGru} ${gru}</td>
                         <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${gruData.total}</td>
                         <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percGru}%</td>
@@ -364,13 +378,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isExpandedGru) {
                         Object.keys(gruData.linhas).sort().forEach(lin => {
                             const linTotal = gruData.linhas[lin].total;
-                            const percLin = totalGeralTabela > 0 ? Math.round((linTotal / totalGeralTabela) * 100) : 0;
-                            const isSelectedLin = (selecaoPiramide && selecaoPiramide.genero === gen && selecaoPiramide.grupo === gru && selecaoPiramide.linha === lin);
+                            
+                            // CÁLCULO %: Nível 3 (% sobre o Total do Grupo Pai)
+                            const percLin = gruData.total > 0 ? Math.round((linTotal / gruData.total) * 100) : 0;
+                            
+                            // LÓGICA DE DESTAQUE
+                            const matchLin = matchGru && (!selecaoPiramide.linha || selecaoPiramide.linha === lin);
+                            const exactLin = matchGen && selecaoPiramide.grupo === gru && selecaoPiramide.linha === lin;
+                            const dimmedLin = selecaoPiramide && !matchLin;
+                            const classLin = exactLin ? 'selected' : (dimmedLin ? 'dimmed' : '');
+                            
                             const escLin = lin.replace(/'/g, "\\'");
 
-                            // 3º NÍVEL (LINHA) - Mais Indentado
+                            // HTML: 3º NÍVEL (LINHA)
                             html += `
-                            <tr class="${isSelectedLin ? 'selected' : (selecaoPiramide ? 'dimmed' : '')}" onclick="toggleCamada('LIN', '${escGen}', '${escGru}', '${escLin}')">
+                            <tr class="${classLin}" onclick="toggleCamada('LIN', '${escGen}', '${escGru}', '${escLin}')">
                                 <td style="padding-left: 40px; cursor: pointer; color: #666;">• ${lin}</td>
                                 <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${linTotal}</td>
                                 <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percLin}%</td>
