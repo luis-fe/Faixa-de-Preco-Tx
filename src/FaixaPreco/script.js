@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let chartInstance = null; 
     
     // VARIÁVEIS DA TABELA PIRÂMIDE
-    let visaoExpandida = false; 
-    let selecaoPiramide = null; 
+    let visaoNivel = 1; // 1: Genero, 2: Grupo, 3: Linha
+    let selecaoPiramide = null; // { genero, grupo, linha }
 
     let currentSyncTime = '--:--';
     let pollingInterval = null;
@@ -23,7 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const listGrupo = document.getElementById('list-grupo');
     const toggleTipoPreco = document.getElementById('toggle-tipo-preco');
     
+    // ELEMENTOS DA PIRAMIDE
     const filtroTabelaGenero = document.getElementById('filtro-tabela-genero');
+    const btnLimparPiramideFiltros = document.getElementById('btn-limpar-piramide-filtros');
 
     const modalConfig = document.getElementById('configModal');
     const modalSelGrupo = document.getElementById('modal-filter-grupo');
@@ -57,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleTipoPreco.addEventListener('change', () => { atualizarKanban(); });
 
-    // --- NOVA LÓGICA DE POPULAR O GRUPO DA PIRÂMIDE ---
+    // --- NOVA LÓGICA DE POPULAR GRUPO E LINHA DA PIRÂMIDE ---
     function popularFiltroPiramideGrupo() {
         const genSel = filtroTabelaGenero.value;
         const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
@@ -73,14 +75,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const container = document.getElementById('list-piramide-grupo');
-        
-        // Renderiza com NENHUM selecionado por padrão
         container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 6px; color: var(--green-primary); font-weight: bold;">
-            <input type="checkbox" class="select-all-piramide"> Selecionar Tudo</label>` +
-            gruposDisponiveis.map(val => `<label><input type="checkbox" class="item-checkbox-piramide" value="${val}"> ${val}</label>`).join('');
+            <input type="checkbox" class="select-all-piramide-grupo"> Selecionar Tudo</label>` +
+            gruposDisponiveis.map(val => `<label><input type="checkbox" class="item-checkbox-piramide-grupo" value="${val}"> ${val}</label>`).join('');
 
-        const chkAll = container.querySelector('.select-all-piramide');
-        const chkItems = container.querySelectorAll('.item-checkbox-piramide');
+        const chkAll = container.querySelector('.select-all-piramide-grupo');
+        const chkItems = container.querySelectorAll('.item-checkbox-piramide-grupo');
+
+        chkAll.addEventListener('change', (e) => {
+            chkItems.forEach(chk => chk.checked = e.target.checked);
+            popularFiltroPiramideLinha(); // Grupo mudou -> Reseta Linha
+            atualizarKanban();
+        });
+
+        chkItems.forEach(chk => chk.addEventListener('change', () => {
+            chkAll.checked = Array.from(chkItems).every(c => c.checked);
+            popularFiltroPiramideLinha(); // Grupo mudou -> Reseta Linha
+            atualizarKanban();
+        }));
+
+        popularFiltroPiramideLinha(); // Garante que a Linha inicie limpa/dependente
+    }
+
+    function popularFiltroPiramideLinha() {
+        const genSel = filtroTabelaGenero.value;
+        const chkGrupos = Array.from(document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide-grupo:checked')).map(c => c.value);
+        
+        const getChecked = (container) => Array.from(document.getElementById(container).querySelectorAll('.item-checkbox:checked')).map(c => c.value);
+        const fCol = getChecked('list-colecao'), fLin = getChecked('list-linha'), fGru = getChecked('list-grupo');
+        
+        let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
+        
+        // Filtra pro Gênero e pros Grupos selecionados na pirâmide
+        if (genSel !== 'TODOS') filtradosGerais = filtradosGerais.filter(p => p.genero === genSel);
+        if (chkGrupos.length > 0) filtradosGerais = filtradosGerais.filter(p => chkGrupos.includes(p.grupo));
+
+        let linhasDisponiveis = [...new Set(filtradosGerais.map(p => p.linha))].sort();
+
+        const container = document.getElementById('list-piramide-linha');
+        container.innerHTML = `<label style="border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 6px; color: var(--green-primary); font-weight: bold;">
+            <input type="checkbox" class="select-all-piramide-linha"> Selecionar Tudo</label>` +
+            linhasDisponiveis.map(val => `<label><input type="checkbox" class="item-checkbox-piramide-linha" value="${val}"> ${val}</label>`).join('');
+
+        const chkAll = container.querySelector('.select-all-piramide-linha');
+        const chkItems = container.querySelectorAll('.item-checkbox-piramide-linha');
 
         chkAll.addEventListener('change', (e) => {
             chkItems.forEach(chk => chk.checked = e.target.checked);
@@ -91,12 +129,22 @@ document.addEventListener('DOMContentLoaded', () => {
             chkAll.checked = Array.from(chkItems).every(c => c.checked);
             atualizarKanban();
         }));
+
+        // Reseta o subtitulo da linha
+        document.getElementById('sub-piramide-linha').innerText = '(Nenhum)';
     }
 
-    // Dispara a re-população do dropdown lateral quando o Gênero mudar
+    // EVENTOS DE MUDANÇA (CASCATA)
     filtroTabelaGenero.addEventListener('change', () => {
         selecaoPiramide = null; 
-        popularFiltroPiramideGrupo(); // Popula e deixa desmarcado (NENHUM)
+        popularFiltroPiramideGrupo(); // Grupo reseta, que por sua vez reseta a Linha
+        atualizarKanban();
+    });
+
+    btnLimparPiramideFiltros.addEventListener('click', () => {
+        filtroTabelaGenero.value = 'TODOS';
+        selecaoPiramide = null;
+        popularFiltroPiramideGrupo(); 
         atualizarKanban();
     });
 
@@ -122,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const gUpper = rawGrupo.toUpperCase();
                     let generoMap = 'Outros';
 
-                    // === CORRELAÇÃO DE GÊNEROS ===
                     if (['ACE MASC','CAL MASC', 'MASCULINO','X-SIZE'].includes(gUpper)) generoMap = 'Masculino';
                     else if (['ACE FEM','CAL FEM', 'FEMININO'].includes(gUpper)) generoMap = 'Feminino';
                     else if (['INF BABY','INF MASC'].includes(gUpper)) generoMap = 'Infantil';
@@ -146,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 popularGrupoModal();
-                popularFiltroPiramideGrupo(); // Monta a nova lista de grupos lateral na primeira carga
+                popularFiltroPiramideGrupo(); // Monta a nova lista de grupos e linhas lateral
                 atualizarKanban();
                 iniciarPolling(plano);
             });
@@ -185,12 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(err => console.error("Erro ao checar sync", err));
     }
 
-    // --- CONTROLE DE CLIQUE NAS LINHAS DA TABELA LATERAL ---
-    window.toggleSelecaoPiramide = (genero, grupo) => {
-        if (selecaoPiramide && selecaoPiramide.genero === genero && selecaoPiramide.grupo === grupo) {
+    // --- CONTROLE DE CLIQUE NAS LINHAS DA TABELA (3 Níveis) ---
+    window.toggleSelecaoPiramide = (genero, grupo, linha) => {
+        if (selecaoPiramide && selecaoPiramide.genero === genero && selecaoPiramide.grupo === grupo && selecaoPiramide.linha === linha) {
             selecaoPiramide = null; 
         } else {
-            selecaoPiramide = { genero, grupo }; 
+            selecaoPiramide = { genero, grupo, linha }; 
         }
         atualizarKanban();
     };
@@ -212,46 +259,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filtradosGerais = produtosBase.filter(p => fCol.includes(p.colecao) && fLin.includes(p.linha) && fGru.includes(p.grupo));
         
-        // --- 1. FILTRAGEM DE GÊNERO PARA A TABELA LATERAL ---
+        // 1. FILTRO: GÊNERO
         const genSel = filtroTabelaGenero.value;
         let filtradosTabela = filtradosGerais;
-        
-        if (genSel !== 'TODOS') {
-            filtradosTabela = filtradosTabela.filter(p => p.genero === genSel);
+        if (genSel !== 'TODOS') filtradosTabela = filtradosTabela.filter(p => p.genero === genSel);
+
+        // 2. FILTRO: GRUPO (Checkboxes Piramide)
+        const chkGrupos = Array.from(document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide-grupo:checked')).map(c => c.value);
+        if (chkGrupos.length === 0) {
+            document.getElementById('sub-piramide-grupo').innerText = '(Nenhum)';
+            visaoNivel = 1; // Visão de Gênero
+        } else {
+            filtradosTabela = filtradosTabela.filter(p => chkGrupos.includes(p.grupo));
+            visaoNivel = 2; // Visão de Grupo
+            
+            const totalGrupos = document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide-grupo').length;
+            if (chkGrupos.length === totalGrupos) document.getElementById('sub-piramide-grupo').innerText = '(Todos)';
+            else if (chkGrupos.length === 1) document.getElementById('sub-piramide-grupo').innerText = `(${chkGrupos[0]})`;
+            else document.getElementById('sub-piramide-grupo').innerText = '(...)';
         }
 
-        // --- 2. NOVA LOGICA: EXPLOSÃO POR CHECKBOXES DE GRUPO ---
-        const chkPiramideGrupos = Array.from(document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide:checked')).map(c => c.value);
-        
-        if (chkPiramideGrupos.length === 0) {
-            visaoExpandida = false;
-            document.getElementById('sub-piramide-grupo').innerText = '(Nenhum)';
+        // 3. FILTRO: LINHA (Checkboxes Piramide)
+        const chkLinhas = Array.from(document.querySelectorAll('#list-piramide-linha .item-checkbox-piramide-linha:checked')).map(c => c.value);
+        if (chkLinhas.length === 0) {
+            document.getElementById('sub-piramide-linha').innerText = '(Nenhum)';
         } else {
-            visaoExpandida = true;
-            // Filtra a tabela para exibir apenas os grupos selecionados
-            filtradosTabela = filtradosTabela.filter(p => chkPiramideGrupos.includes(p.grupo));
+            filtradosTabela = filtradosTabela.filter(p => chkLinhas.includes(p.linha));
+            visaoNivel = 3; // Visão de Linha
             
-            const totalGruposBox = document.querySelectorAll('#list-piramide-grupo .item-checkbox-piramide').length;
-            if (chkPiramideGrupos.length === totalGruposBox) {
-                document.getElementById('sub-piramide-grupo').innerText = '(Todos)';
-            } else if (chkPiramideGrupos.length === 1) {
-                document.getElementById('sub-piramide-grupo').innerText = `(${chkPiramideGrupos[0]})`;
-            } else {
-                document.getElementById('sub-piramide-grupo').innerText = '(...)';
-            }
+            const totalLinhas = document.querySelectorAll('#list-piramide-linha .item-checkbox-piramide-linha').length;
+            if (chkLinhas.length === totalLinhas) document.getElementById('sub-piramide-linha').innerText = '(Todas)';
+            else if (chkLinhas.length === 1) document.getElementById('sub-piramide-linha').innerText = `(${chkLinhas[0]})`;
+            else document.getElementById('sub-piramide-linha').innerText = '(...)';
         }
 
         atualizarTabelaLateral(filtradosTabela);
 
-        // --- 3. FILTRAGEM FINAL PARA O GRÁFICO E KANBAN ---
+        // --- FILTRAGEM FINAL PARA O GRÁFICO E KANBAN (Considera clique na tabela) ---
         let filtradosParaVisuais = filtradosTabela;
         
         if (selecaoPiramide) {
-            if (selecaoPiramide.grupo) {
-                filtradosParaVisuais = filtradosParaVisuais.filter(p => p.genero === selecaoPiramide.genero && p.grupo === selecaoPiramide.grupo);
-            } else {
-                filtradosParaVisuais = filtradosParaVisuais.filter(p => p.genero === selecaoPiramide.genero);
-            }
+            filtradosParaVisuais = filtradosParaVisuais.filter(p => p.genero === selecaoPiramide.genero);
+            if (selecaoPiramide.grupo !== 'null') filtradosParaVisuais = filtradosParaVisuais.filter(p => p.grupo === selecaoPiramide.grupo);
+            if (selecaoPiramide.linha !== 'null') filtradosParaVisuais = filtradosParaVisuais.filter(p => p.linha === selecaoPiramide.linha);
         }
 
         const setSub = (id, arr) => {
@@ -260,8 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (selecaoPiramide) {
-            setSub('sub-grupo', selecaoPiramide.grupo ? [selecaoPiramide.grupo] : effGru);
-            setSub('sub-linha', effLin);
+            setSub('sub-grupo', selecaoPiramide.grupo !== 'null' ? [selecaoPiramide.grupo] : effGru);
+            setSub('sub-linha', selecaoPiramide.linha !== 'null' ? [selecaoPiramide.linha] : effLin);
             setSub('sub-colecao', [...new Set(filtradosParaVisuais.map(p => p.colecao))]);
         } else {
             setSub('sub-linha', effLin); setSub('sub-grupo', effGru); setSub('sub-colecao', effCol);
@@ -313,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { rangeE.style.display = rangeI.style.display = rangeP.style.display = 'none'; }
     }
 
-    // --- CONSTRUÇÃO DINÂMICA DA TABELA LATERAL ---
+    // --- CONSTRUÇÃO DINÂMICA DA TABELA LATERAL (NÍVEIS 1, 2 E 3) ---
     function atualizarTabelaLateral(filtradosTabela) {
         const tbody = document.querySelector('#side-summary-table tbody');
         const thead = document.querySelector('#side-summary-table thead');
@@ -321,14 +371,21 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalGeralTabela = 0;
         const mapa = {};
 
+        // Agrupa dependendo da visão Nível (1: Genero, 2: Grupo, 3: Linha)
         filtradosTabela.forEach(p => {
-            const key = visaoExpandida ? p.genero + '|' + p.grupo : p.genero;
-            if (!mapa[key]) mapa[key] = { genero: p.genero, grupo: p.grupo, total: 0 };
+            let key = p.genero;
+            if (visaoNivel >= 2) key += '|' + p.grupo;
+            if (visaoNivel === 3) key += '|' + p.linha;
+
+            if (!mapa[key]) mapa[key] = { genero: p.genero, grupo: p.grupo, linha: p.linha, total: 0 };
             mapa[key].total++;
             totalGeralTabela++;
         });
 
-        if (visaoExpandida) {
+        // Monta o Cabeçalho
+        if (visaoNivel === 3) {
+            thead.innerHTML = `<tr><th>Gênero</th><th>Grupo</th><th>Linha</th><th style="text-align: center;">Total</th><th style="text-align: center;">Mix %</th></tr>`;
+        } else if (visaoNivel === 2) {
             thead.innerHTML = `<tr><th>Gênero</th><th>Grupo</th><th style="text-align: center;">Total</th><th style="text-align: center;">Mix %</th></tr>`;
         } else {
             thead.innerHTML = `<tr><th>Gênero</th><th style="text-align: center;">Total</th><th style="text-align: center;">Mix %</th></tr>`;
@@ -336,7 +393,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const arrayResumo = Object.values(mapa);
         
-        if (visaoExpandida) {
+        // Ordena
+        if (visaoNivel === 3) {
+            arrayResumo.sort((a, b) => a.genero.localeCompare(b.genero) || a.grupo.localeCompare(b.grupo) || a.linha.localeCompare(b.linha));
+        } else if (visaoNivel === 2) {
             arrayResumo.sort((a, b) => a.genero.localeCompare(b.genero) || a.grupo.localeCompare(b.grupo));
         } else {
             arrayResumo.sort((a, b) => a.genero.localeCompare(b.genero));
@@ -345,20 +405,33 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = arrayResumo.map(item => {
             let classeCSS = '';
             
+            // Highlight na linha clicada
             if (selecaoPiramide) {
                 const matchGen = selecaoPiramide.genero === item.genero;
-                const matchGru = visaoExpandida ? (selecaoPiramide.grupo === item.grupo) : true;
-                if (matchGen && matchGru) classeCSS = 'selected'; else classeCSS = 'dimmed';
+                const matchGru = visaoNivel >= 2 ? (selecaoPiramide.grupo === item.grupo) : true;
+                const matchLin = visaoNivel === 3 ? (selecaoPiramide.linha === item.linha) : true;
+                if (matchGen && matchGru && matchLin) classeCSS = 'selected'; else classeCSS = 'dimmed';
             }
 
             let percentual = totalGeralTabela > 0 ? ((item.total / totalGeralTabela) * 100).toFixed(2) : "0.00";
             
+            // Strings limpas para o onClick
             const escGen = item.genero.replace(/'/g, "\\'");
-            const escGru = visaoExpandida ? item.grupo.replace(/'/g, "\\'") : 'null'; 
+            const escGru = visaoNivel >= 2 ? item.grupo.replace(/'/g, "\\'") : 'null'; 
+            const escLin = visaoNivel === 3 ? item.linha.replace(/'/g, "\\'") : 'null'; 
 
-            if (visaoExpandida) {
+            if (visaoNivel === 3) {
                 return `
-                <tr class="${classeCSS}" onclick="toggleSelecaoPiramide('${escGen}', '${item.grupo.replace(/'/g, "\\'")}')">
+                <tr class="${classeCSS}" onclick="toggleSelecaoPiramide('${escGen}', '${escGru}', '${escLin}')">
+                    <td>${item.genero}</td>
+                    <td>${item.grupo}</td>
+                    <td><strong>${item.linha}</strong></td>
+                    <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
+                    <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percentual}%</td>
+                </tr>`;
+            } else if (visaoNivel === 2) {
+                return `
+                <tr class="${classeCSS}" onclick="toggleSelecaoPiramide('${escGen}', '${escGru}', 'null')">
                     <td>${item.genero}</td>
                     <td><strong>${item.grupo}</strong></td>
                     <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
@@ -366,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </tr>`;
             } else {
                 return `
-                <tr class="${classeCSS}" onclick="toggleSelecaoPiramide('${escGen}', null)">
+                <tr class="${classeCSS}" onclick="toggleSelecaoPiramide('${escGen}', 'null', 'null')">
                     <td><strong>${item.genero}</strong></td>
                     <td style="text-align: center; color: var(--green-primary); font-weight: bold;">${item.total}</td>
                     <td style="text-align: center; font-size: 0.95em; color: #333; font-weight: bold;">${percentual}%</td>
@@ -683,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.item-checkbox').forEach(chk => chk.checked = true);
         
         filtroTabelaGenero.value = 'TODOS';
-        popularFiltroPiramideGrupo(); // Reseta os grupos da piramide para NENHUM
+        popularFiltroPiramideGrupo(); 
         selecaoPiramide = null; 
         
         atualizarKanban();
